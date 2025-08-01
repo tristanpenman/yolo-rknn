@@ -8,3 +8,5 @@ Options include:
 * `yolov5n.onnx`
 * `yolov5s_relu.onnx`
 * `yolov5s.onnx`
+
+For convenience, yolov5n.onnx has already been included.
