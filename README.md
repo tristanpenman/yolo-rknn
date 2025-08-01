@@ -1,4 +1,4 @@
-# YOLOv5 Experiments
+# YOLOv5 RKNN
 
 Experiments in fine-tuning YOLOv5 and converting model weights to RKNN format.
 
