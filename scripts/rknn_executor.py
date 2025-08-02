@@ -1,4 +1,4 @@
-from rknn.api import RKNN
+from scripts.api import RKNN
 
 
 class RKNN_model_container():

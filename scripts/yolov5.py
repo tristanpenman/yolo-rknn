@@ -3,7 +3,7 @@ import cv2
 import sys
 import argparse
 
-from coco_utils import COCO_test_helper
+from coco_utils import CocoTestHelper
 import numpy as np
 
 
@@ -177,8 +177,8 @@ def setup_model(args):
         model = RKNN_model_container(args.model_path, args.target, args.device_id)
     elif model_path.endswith('onnx'):
         platform = 'onnx'
-        from onnx_executor import ONNX_model_container
-        model = ONNX_model_container(args.model_path)
+        from onnx_executor import onnx_model_container
+        model = onnx_model_container(args.model_path)
     else:
         assert False, "{} is not rknn/pytorch/onnx model".format(model_path)
     print('Model-{} is {} model, starting val'.format(model_path, platform))
@@ -225,7 +225,7 @@ if __name__ == '__main__':
         print(f"path {path}")
         if img_check(path):
             img_list.append(path)
-    co_helper = COCO_test_helper(enable_letter_box=True)
+    co_helper = CocoTestHelper(enable_letter_box=True)
 
     # run test
     for i in range(len(img_list)):

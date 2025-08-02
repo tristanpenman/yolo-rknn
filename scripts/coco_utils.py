@@ -1,10 +1,11 @@
+import json
 from copy import copy
-import os
+
 import cv2
 import numpy as np
-import json
 
-class Letter_Box_Info():
+
+class LetterboxInfo:
     def __init__(self, shape, new_shape, w_ratio, h_ratio, dw, dh, pad_color) -> None:
         self.origin_shape = shape
         self.new_shape = new_shape
@@ -21,10 +22,6 @@ def coco_eval_with_json(anno_json, pred_json):
     anno = COCO(anno_json)
     pred = anno.loadRes(pred_json)
     eval = COCOeval(anno, pred, 'bbox')
-    # eval.params.useCats = 0
-    # eval.params.maxDets = list((100, 300, 1000))
-    # a = np.array(list(range(50, 96, 1)))/100
-    # eval.params.iouThrs = a
     eval.evaluate()
     eval.accumulate()
     eval.summarize()
@@ -36,11 +33,11 @@ def coco_eval_with_json(anno_json, pred_json):
     print('map85--> ', eval.stats[-2])
     print('map95--> ', eval.stats[-1])
 
-class COCO_test_helper():
+class CocoTestHelper:
     def __init__(self, enable_letter_box = False) -> None:
         self.record_list = []
-        self.enable_ltter_box = enable_letter_box
-        if self.enable_ltter_box is True:
+        self.enable_letter_box = enable_letter_box
+        if self.enable_letter_box:
             self.letter_box_info_list = []
         else:
             self.letter_box_info_list = None
@@ -66,11 +63,13 @@ class COCO_test_helper():
             im = cv2.resize(im, new_unpad, interpolation=cv2.INTER_LINEAR)
         top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-        im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)  # add border
+        # add border
+        im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
         
-        if self.enable_ltter_box is True:
-            self.letter_box_info_list.append(Letter_Box_Info(shape, new_shape, ratio, ratio, dw, dh, pad_color))
-        if info_need is True:
+        if self.enable_letter_box:
+            lbi = LetterboxInfo(shape, new_shape, ratio, ratio, dw, dh, pad_color)
+            self.letter_box_info_list.append(lbi)
+        if info_need:
             return im, ratio, (dw, dh)
         else:
             return im
@@ -79,14 +78,15 @@ class COCO_test_helper():
         shape = im.shape[:2]
         h_ratio = new_shape[0]/ shape[0]
         w_ratio = new_shape[1]/ shape[1]
-        if self.enable_ltter_box is True:
-            self.letter_box_info_list.append(Letter_Box_Info(shape, new_shape, w_ratio, h_ratio, 0, 0, (0,0,0)))
+        if self.enable_letter_box:
+            letter_box_info = LetterboxInfo(shape, new_shape, w_ratio, h_ratio, 0, 0, (0, 0, 0))
+            self.letter_box_info_list.append(letter_box_info)
         im = cv2.resize(im, (new_shape[1], new_shape[0]))
         return im
 
     def get_real_box(self, box, in_format='xyxy'):
         bbox = copy(box)
-        if self.enable_ltter_box == True:
+        if self.enable_letter_box:
         # unletter_box result
             if in_format=='xyxy':
                 bbox[:,0] -= self.letter_box_info_list[-1].dw
@@ -125,9 +125,15 @@ class COCO_test_helper():
         else:
             return seg.transpose(2,0,1)
 
-    def add_single_record(self, image_id, category_id, bbox, score, in_format='xyxy', pred_masks = None):
-        if self.enable_ltter_box == True:
-        # unletter_box result
+    def add_single_record(self,
+                          image_id,
+                          category_id,
+                          bbox,
+                          score,
+                          in_format='xyxy',
+                          pred_masks = None):
+        if self.enable_letter_box:
+            # un-letterbox result
             if in_format=='xyxy':
                 bbox[0] -= self.letter_box_info_list[-1].dw
                 bbox[0] /= self.letter_box_info_list[-1].w_ratio
@@ -142,8 +148,8 @@ class COCO_test_helper():
                 bbox[3] /= self.letter_box_info_list[-1].h_ratio
                 # bbox = [value/self.letter_box_info_list[-1].ratio for value in bbox]
 
-        if in_format=='xyxy':
-        # change xyxy to xywh
+        if in_format == 'xyxy':
+            # change xyxy to xywh
             bbox[2] = bbox[2] - bbox[0]
             bbox[3] = bbox[3] - bbox[1]
         else:
@@ -173,4 +179,3 @@ class COCO_test_helper():
     def export_to_json(self, path):
         with open(path, 'w') as f:
             json.dump(self.record_list, f)
-

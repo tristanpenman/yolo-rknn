@@ -56,7 +56,7 @@ In the case of YOLOv5, there is also a small change made to the model graph, whe
 
 ## Scripts
 
-The conversion process is implemented in Python. The code for this lives in the [rknn](./rknn) directory. This includes scripts for converting the model on a Linux PC, as well as code for performing inference on a Rockchip device (e.g. RK3588). Inference can also be performed on a desktop CPU or GPU using ONNX.
+The conversion process is implemented in Python. The code for this lives in the [scripts](scripts) directory. This includes scripts for converting the model on a Linux PC, as well as code for performing inference on a Rockchip device (e.g. RK3588). Inference can also be performed on a desktop CPU or GPU using ONNX.
 
 The complete list of scripts is as follows:
 
@@ -90,7 +90,7 @@ Install requirements using `pip`:
 pip3 install -r requirements.txt
 ```
 
-This will install dependencies for the scripts in [rknn](./rknn) and [yolov5](./yolov5/).
+This will install dependencies for the scripts in [scripts](scripts) and [yolov5](./yolov5/).
 
 ### Models (optional)
 
