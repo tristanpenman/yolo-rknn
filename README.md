@@ -16,7 +16,8 @@ This directory contains step-by-step instructions for Transfer Learning using YO
 * [Scripts](#scripts)
   * [RKNN Model Zoo](#rknn-model-zoo)
 * [Prerequisites](#prerequisites)
-  * [Dependencies](#dependencies)
+  * [Direct Installation](#direct-installation)
+  * [Docker (alternative)](#docker-alternative)
   * [Models (optional)](#models-optional)
 * [Conversion](#conversion)
   * [Testing](#testing)
@@ -82,15 +83,33 @@ cd yolov5-rknn
 git submodule update --init yolov5
 ```
 
-### Dependencies
+What you do next will depend on your operating system. If you are using macOS, you will need to use Docker as [described below](#docker-optional).
 
-Install requirements using `pip`:
+If you are using Linux or WSL, you should be able to proceed with Direct Installation. Docker is an option too, of course.
+
+### Direct Installation
+
+Install requirements using `pip`. Note that these instructions may depend on whether you're using pyenv or some other Python virtual environment:
 
 ```
 pip3 install -r requirements.txt
 ```
 
 This will install dependencies for the scripts in [scripts](scripts) and [yolov5](./yolov5/).
+
+### Docker (optional)
+
+Build the Docker image:
+
+```
+docker build -t yolov5-rknn .
+```
+
+Once the image has been built, you can start a container using:
+
+```
+docker run -it --rm -v "$PWD:/workspace" yolov5-rknn
+```
 
 ### Models (optional)
 

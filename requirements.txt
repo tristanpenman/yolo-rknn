@@ -7,11 +7,12 @@ opencv-python>=4.1.1
 pandas>=1.1.4
 pillow>=10.3.0
 psutil
+pycocotools
 python3-xlib
 pyyaml
 PyYAML>=5.3.1
-requests>=2.32.2
-rknn-toolkit2
+requests==2.32.4
+rknn-toolkit2==2.3.2
 scipy>=1.4.1
 seaborn>=0.11.0
 setuptools>=70.0.0
