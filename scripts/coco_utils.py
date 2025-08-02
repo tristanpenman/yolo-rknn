@@ -11,7 +11,7 @@ class LetterboxInfo:
         self.new_shape = new_shape
         self.w_ratio = w_ratio
         self.h_ratio = h_ratio
-        self.dw = dw 
+        self.dw = dw
         self.dh = dh
         self.pad_color = pad_color
 
@@ -65,7 +65,7 @@ class CocoTestHelper:
         left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
         # add border
         im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
-        
+
         if self.enable_letter_box:
             lbi = LetterboxInfo(shape, new_shape, ratio, ratio, dw, dh, pad_color)
             self.letter_box_info_list.append(lbi)
@@ -116,7 +116,7 @@ class CocoTestHelper:
             return seg
         elif dh == 0 and dw != 0:
             seg = seg[:, :, dw:-dw] # a[0:-0] = []
-        elif dw == 0 and dh != 0 : 
+        elif dw == 0 and dh != 0 :
             seg = seg[:, dh:-dh, :]
         seg = np.where(seg, 1, 0).astype(np.uint8).transpose(1,2,0)
         seg = cv2.resize(seg, (origin_shape[1], origin_shape[0]), interpolation=cv2.INTER_LINEAR)
@@ -154,7 +154,7 @@ class CocoTestHelper:
             bbox[3] = bbox[3] - bbox[1]
         else:
             assert False, "now only support xyxy format, please add code to support others format"
-        
+
         def single_encode(x):
             from pycocotools.mask import encode
             rle = encode(np.asarray(x[:, :, None], order="F", dtype="uint8"))[0]
@@ -175,7 +175,7 @@ class CocoTestHelper:
                                     'score': round(score, 5),
                                     'segmentation': rles,
                                     })
-    
+
     def export_to_json(self, path):
         with open(path, 'w') as f:
             json.dump(self.record_list, f)
