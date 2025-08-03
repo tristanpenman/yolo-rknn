@@ -9,7 +9,7 @@ DEFAULT_QUANT = True
 PLATFORMS = ['rk3562', 'rk3566', 'rk3568', 'rk3576', 'rk3588', 'rv1103',
              'rv1106', 'rv1126b', 'rv1109', 'rv1126', 'rk1808']
 
-def parse_arg():
+def parse_args():
     if len(sys.argv) < 3:
         print("Usage: python3 {} <onnx_path> [platform] [dtype] [output_path]".format(sys.argv[0]))
         print("       platform choose from: {}".format(', '.join(PLATFORMS)))
@@ -38,8 +38,8 @@ def parse_arg():
 
     return model_path, platform, do_quant, output_path
 
-if __name__ == '__main__':
-    model_path, platform, do_quant, output_path = parse_arg()
+def main():
+    model_path, platform, do_quant, output_path = parse_args()
 
     # Create RKNN object
     rknn = RKNN(verbose=False)
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     # Pre-process config
     print('--> Config model')
     rknn.config(mean_values=[[0, 0, 0]], std_values=[
-                    [255, 255, 255]], target_platform=platform)
+        [255, 255, 255]], target_platform=platform)
     print('done')
 
     # Load model
@@ -76,3 +76,6 @@ if __name__ == '__main__':
 
     # Release
     rknn.release()
+
+if __name__ == '__main__':
+    main()

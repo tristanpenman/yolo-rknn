@@ -1,7 +1,7 @@
-from scripts.api import RKNN
+from rknn.api import RKNN
 
 
-class RKNN_model_container():
+class RknnModelContainer:
     def __init__(self, model_path, target=None, device_id=None) -> None:
         rknn = RKNN()
 
@@ -9,7 +9,7 @@ class RKNN_model_container():
         rknn.load_rknn(model_path)
 
         print('--> Init runtime environment')
-        if target==None:
+        if target is None:
             ret = rknn.init_runtime()
         else:
             ret = rknn.init_runtime(target=target, device_id=device_id)
@@ -19,9 +19,6 @@ class RKNN_model_container():
         print('done')
 
         self.rknn = rknn
-
-    # def __del__(self):
-    #     self.release()
 
     def run(self, inputs):
         if self.rknn is None:

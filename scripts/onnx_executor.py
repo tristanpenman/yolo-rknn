@@ -1,4 +1,5 @@
 import os
+
 import numpy as np
 import onnxruntime as rt
 
@@ -17,14 +18,11 @@ else:
 def ignore_dim_with_zero(_shape, _shape_target):
     _shape = list(_shape)
     _shape_target = list(_shape_target)
-    for i in range(_shape.count(1)):
+    for _ in range(_shape.count(1)):
         _shape.remove(1)
-    for j in range(_shape_target.count(1)):
+    for _ in range(_shape_target.count(1)):
         _shape_target.remove(1)
-    if _shape == _shape_target:
-        return True
-    else:
-        return False
+    return _shape == _shape_target
 
 
 class OnnxModelContainerPy:
@@ -33,11 +31,10 @@ class OnnxModelContainerPy:
         sp_options = rt.SessionOptions()
         sp_options.log_severity_level = 3
         # [1 for info, 2 for warning, 3 for error, 4 for fatal]
-        self.sess = rt.InferenceSession(model_path, sess_options=sp_options, providers=['CPUExecutionProvider'])
+        self.sess = rt.InferenceSession(model_path,
+                                        sess_options=sp_options,
+                                        providers=['CPUExecutionProvider'])
         self.model_path = model_path
-
-    # def __del__(self):
-    #     self.release()
 
     def run(self, input_datas):
         if self.sess is None:
@@ -54,16 +51,19 @@ class OnnxModelContainerPy:
             # convert type
             if _input.type in type_map and \
                 type_map[_input.type] != input_datas[i].dtype:
-                print('WARNING: force data-{} from {} to {}'.format(i, input_datas[i].dtype, type_map[_input.type]))
+                print('WARNING: force data-{} from {} to {}'.format(
+                    i, input_datas[i].dtype, type_map[_input.type]))
                 input_datas[i] = input_datas[i].astype(type_map[_input.type])
 
             # reshape if need
             if _input.shape != list(input_datas[i].shape):
                 if ignore_dim_with_zero(input_datas[i].shape,_input.shape):
                     input_datas[i] = input_datas[i].reshape(_input.shape)
-                    print("WARNING: reshape inputdata-{}: from {} to {}".format(i, input_datas[i].shape, _input.shape))
+                    print("WARNING: reshape inputdata-{}: from {} to {}".format(
+                        i, input_datas[i].shape, _input.shape))
                 else:
-                    assert False, 'input shape{} not match real data shape{}'.format(_input.shape, input_datas[i].shape)
+                    assert False, 'input shape{} not match real data shape{}'.format(
+                        _input.shape, input_datas[i].shape)
             input_dict[_input.name] = input_datas[i]
 
         output_list = []
@@ -90,7 +90,7 @@ class OnnxModelContainerCpp:
 def onnx_model_container(model_path, backend='py'):
     if backend == 'py':
         return OnnxModelContainerPy(model_path)
-    elif backend == 'cpp':
+    if backend == 'cpp':
         return OnnxModelContainerCpp(model_path)
     return None
 

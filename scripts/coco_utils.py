@@ -3,6 +3,10 @@ from copy import copy
 
 import cv2
 import numpy as np
+# pycocotools
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
+from pycocotools.mask import encode
 
 
 class LetterboxInfo:
@@ -17,21 +21,32 @@ class LetterboxInfo:
 
 
 def coco_eval_with_json(anno_json, pred_json):
-    from pycocotools.coco import COCO
-    from pycocotools.cocoeval import COCOeval
+    #
+    # Output arranged as per:
+    #     Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.505
+    #     Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.697
+    #     Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.573
+    #     Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.586
+    #     Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.519
+    #     Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.501
+    #     Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.387
+    #     Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.594
+    #     Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.595
+    #     Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.640
+    #     Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.566
+    #     Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.564
+    #
     anno = COCO(anno_json)
     pred = anno.loadRes(pred_json)
-    eval = COCOeval(anno, pred, 'bbox')
-    eval.evaluate()
-    eval.accumulate()
-    eval.summarize()
-    map, map50 = eval.stats[:2]  # update results (mAP@0.5:0.95, mAP@0.5)
+    coco_eval = COCOeval(anno, pred, 'bbox')
+    coco_eval.evaluate()
+    coco_eval.accumulate()
+    coco_eval.summarize()
 
-    print('map  --> ', map)
-    print('map50--> ', map50)
-    print('map75--> ', eval.stats[2])
-    print('map85--> ', eval.stats[-2])
-    print('map95--> ', eval.stats[-1])
+    # update results (mAP@0.5:0.95, mAP@0.5)
+    map05_95, map05 = coco_eval.stats[:2]
+    print('mAP@0.5:0.95  --> ', map05_95)
+    print('mAP@0.5       --> ', map05)
 
 class CocoTestHelper:
     def __init__(self, enable_letter_box = False) -> None:
@@ -56,13 +71,15 @@ class CocoTestHelper:
         new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
         dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # wh padding
 
-        dw /= 2  # divide padding into 2 sides
+        # divide padding into 2 sides
+        dw /= 2
         dh /= 2
 
         if shape[::-1] != new_unpad:  # resize
             im = cv2.resize(im, new_unpad, interpolation=cv2.INTER_LINEAR)
         top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
+
         # add border
         im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
 
@@ -71,24 +88,14 @@ class CocoTestHelper:
             self.letter_box_info_list.append(lbi)
         if info_need:
             return im, ratio, (dw, dh)
-        else:
-            return im
 
-    def direct_resize(self, im, new_shape, info_need=False):
-        shape = im.shape[:2]
-        h_ratio = new_shape[0]/ shape[0]
-        w_ratio = new_shape[1]/ shape[1]
-        if self.enable_letter_box:
-            letter_box_info = LetterboxInfo(shape, new_shape, w_ratio, h_ratio, 0, 0, (0, 0, 0))
-            self.letter_box_info_list.append(letter_box_info)
-        im = cv2.resize(im, (new_shape[1], new_shape[0]))
         return im
 
     def get_real_box(self, box, in_format='xyxy'):
         bbox = copy(box)
         if self.enable_letter_box:
-        # unletter_box result
-            if in_format=='xyxy':
+            # un-letterbox result
+            if in_format == 'xyxy':
                 bbox[:,0] -= self.letter_box_info_list[-1].dw
                 bbox[:,0] /= self.letter_box_info_list[-1].w_ratio
                 bbox[:,0] = np.clip(bbox[:,0], 0, self.letter_box_info_list[-1].origin_shape[1])
@@ -146,7 +153,6 @@ class CocoTestHelper:
 
                 bbox[3] -= self.letter_box_info_list[-1].dh
                 bbox[3] /= self.letter_box_info_list[-1].h_ratio
-                # bbox = [value/self.letter_box_info_list[-1].ratio for value in bbox]
 
         if in_format == 'xyxy':
             # change xyxy to xywh
@@ -156,26 +162,27 @@ class CocoTestHelper:
             assert False, "now only support xyxy format, please add code to support others format"
 
         def single_encode(x):
-            from pycocotools.mask import encode
             rle = encode(np.asarray(x[:, :, None], order="F", dtype="uint8"))[0]
             rle["counts"] = rle["counts"].decode("utf-8")
             return rle
 
         if pred_masks is None:
-            self.record_list.append({"image_id": image_id,
-                                    "category_id": category_id,
-                                    "bbox":[round(x, 3) for x in bbox],
-                                    'score': round(score, 5),
-                                    })
+            self.record_list.append({
+                "image_id": image_id,
+                "category_id": category_id,
+                "bbox": [round(x, 3) for x in bbox],
+                "score": round(score, 5),
+            })
         else:
             rles = single_encode(pred_masks)
-            self.record_list.append({"image_id": image_id,
-                                    "category_id": category_id,
-                                    "bbox":[round(x, 3) for x in bbox],
-                                    'score': round(score, 5),
-                                    'segmentation': rles,
-                                    })
+            self.record_list.append({
+                "image_id": image_id,
+                "category_id": category_id,
+                "bbox": [round(x, 3) for x in bbox],
+                "score": round(score, 5),
+                "segmentation": rles,
+            })
 
     def export_to_json(self, path):
-        with open(path, 'w') as f:
+        with open(path, 'w', encoding="utf-8") as f:
             json.dump(self.record_list, f)

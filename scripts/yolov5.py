@@ -1,15 +1,17 @@
-import os
-import cv2
 import argparse
+import os
 
-from coco_utils import CocoTestHelper
+import cv2
 import numpy as np
 
+from coco_utils import CocoTestHelper, coco_eval_with_json
+from onnx_executor import onnx_model_container
+from rknn_executor import RknnModelContainer
 
 OBJ_THRESH = 0.25
 NMS_THRESH = 0.45
 
-# The follew two param is for map test
+# The following two params are for map test
 # OBJ_THRESH = 0.001
 # NMS_THRESH = 0.65
 
@@ -85,7 +87,8 @@ def box_process(position, anchors):
     col = col.reshape(1, 1, grid_h, grid_w)
     row = row.reshape(1, 1, grid_h, grid_w)
     grid = np.concatenate((col, row), axis=1)
-    stride = np.array([IMG_SIZE[1]//grid_h, IMG_SIZE[0]//grid_w]).reshape(1,2,1,1)
+    stride = np.array([IMG_SIZE[1] // grid_h,
+                       IMG_SIZE[0] // grid_w]).reshape(1,2,1,1)
 
     col = col.repeat(len(anchors), axis=0)
     row = row.repeat(len(anchors), axis=0)
@@ -112,10 +115,11 @@ def post_process(input_data, anchors):
     boxes, scores, classes_conf = [], [], []
     # 1*255*h*w -> 3*85*h*w
     input_data = [_in.reshape([len(anchors[0]),-1]+list(_in.shape[-2:])) for _in in input_data]
-    for i in range(len(input_data)):
-        boxes.append(box_process(input_data[i][:,:4,:,:], anchors[i]))
-        scores.append(input_data[i][:,4:5,:,:])
-        classes_conf.append(input_data[i][:,5:,:,:])
+
+    for i, item in enumerate(input_data):
+        boxes.append(box_process(item[:,:4,:,:], anchors[i]))
+        scores.append(item[:,4:5,:,:])
+        classes_conf.append(item[:,5:,:,:])
 
     def sp_flatten(_in):
         ch = _in.shape[1]
@@ -168,17 +172,11 @@ def draw(image, boxes, scores, classes):
 
 def setup_model(args):
     model_path = args.model_path
-    if model_path.endswith('.pt') or model_path.endswith('.torchscript'):
-        platform = 'pytorch'
-        from py_utils.pytorch_executor import Torch_model_container
-        model = Torch_model_container(args.model_path)
-    elif model_path.endswith('.rknn'):
+    if model_path.endswith('.rknn'):
         platform = 'rknn'
-        from py_utils.rknn_executor import RKNN_model_container
-        model = RKNN_model_container(args.model_path, args.target, args.device_id)
+        model = RknnModelContainer(args.model_path, args.target, args.device_id)
     elif model_path.endswith('onnx'):
         platform = 'onnx'
-        from onnx_executor import onnx_model_container
         model = onnx_model_container(args.model_path)
     else:
         assert False, "{} is not rknn/pytorch/onnx model".format(model_path)
@@ -192,27 +190,34 @@ def img_check(path):
             return True
     return False
 
-if __name__ == '__main__':
+def parse_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
-    # basic params
-    parser.add_argument('--model_path', type=str, required= True, help='model path, could be .pt or .rknn file')
-    parser.add_argument('--target', type=str, default='rk3566', help='target RKNPU platform')
-    parser.add_argument('--device_id', type=str, default=None, help='device id')
 
-    parser.add_argument('--img_show', action='store_true', default=False, help='draw the result and show')
+    # basic params
+    parser.add_argument('--device_id', type=str, default=None, help='device id')
+    parser.add_argument('--model_path', type=str, required=True, help='path to .onnx or .rknn file')
+    parser.add_argument('--target', type=str, default='rk3566', help='target RKNPU platform')
+
+    # output params
     parser.add_argument('--img_save', action='store_true', default=False, help='save the result')
+    parser.add_argument('--img_show', action='store_true', default=False, help='draw the result and show')
 
     # data params
-    parser.add_argument('--anno_json', type=str, default='../../../datasets/COCO/annotations/instances_val2017.json', help='coco annotation path')
-    # coco val folder: '../../../datasets/COCO//val2017'
-    parser.add_argument('--img_folder', type=str, default='images', help='img folder path')
+    parser.add_argument('--anno_json', type=str, help='coco annotation path')
     parser.add_argument('--coco_map_test', action='store_true', help='enable coco map test')
-    parser.add_argument('--anchors', type=str, default='models/anchors_yolov5.txt', help='target to anchor file, only yolov5, yolov7 need this param')
+    parser.add_argument('--img_folder', type=str, default='images', help='img folder path')
+    parser.add_argument('--anchors',
+                        type=str,
+                        default='models/anchors_yolov5.txt',
+                        help='target to anchor file, only yolov5, yolov7 need this param')
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
 
     # load anchor
-    with open(args.anchors, 'r') as f:
+    with open(args.anchors, 'r', encoding="utf-8") as f:
         values = [float(_v) for _v in f.readlines()]
         anchors = np.array(values).reshape(3,-1,2).tolist()
     print("use anchors from '{}', which is {}".format(args.anchors, anchors))
@@ -229,25 +234,24 @@ if __name__ == '__main__':
     co_helper = CocoTestHelper(enable_letter_box=True)
 
     # run test
-    for i in range(len(img_list)):
-        print('infer {}/{}'.format(i+1, len(img_list)), end='\r')
+    for i, img_name in enumerate(img_list):
+        print('infer {}/{}'.format(i + 1, len(img_list)), end='\r')
 
-        img_name = img_list[i]
         img_path = os.path.join(args.img_folder, img_name)
         if not os.path.exists(img_path):
             print("{} is not found", img_name)
             continue
 
-        img_src = cv2.imread(img_path)
+        img_src = cv2.imread(str(img_path))
         if img_src is None:
             continue
 
-        # Due to rga init with (0,0,0), we using pad_color (0,0,0) instead of (114, 114, 114)
-        pad_color = (0,0,0)
+        # Due to rga init with (0,0,0), we're using pad_color (0,0,0) instead of (114, 114, 114)
+        # pad_color = (0,0,0)
         img = co_helper.letter_box(im= img_src.copy(), new_shape=(IMG_SIZE[1], IMG_SIZE[0]), pad_color=(0,0,0))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        # preprocee if not rknn model
+        # pre-process if not rknn model
         if platform in ['pytorch', 'onnx']:
             input_data = img.transpose((2,0,1))
             input_data = input_data.reshape(1,*input_data.shape).astype(np.float32)
@@ -278,12 +282,11 @@ if __name__ == '__main__':
         # record maps
         if args.coco_map_test is True:
             if boxes is not None:
-                for i in range(boxes.shape[0]):
+                for j in range(boxes.shape[0]):
                     co_helper.add_single_record(image_id = int(img_name.split('.')[0]),
-                                                category_id = coco_id_list[int(classes[i])],
-                                                bbox = boxes[i],
-                                                score = round(scores[i], 5).item()
-                                                )
+                                                category_id = coco_id_list[int(classes[j])],
+                                                bbox = boxes[j],
+                                                score = round(scores[j], 5).item())
 
     # calculate maps
     if args.coco_map_test is True:
@@ -291,9 +294,9 @@ if __name__ == '__main__':
         pred_json = pred_json.split('/')[-1]
         pred_json = os.path.join('./', pred_json)
         co_helper.export_to_json(pred_json)
-
-        from py_utils.coco_utils import coco_eval_with_json
         coco_eval_with_json(args.anno_json, pred_json)
 
-    # release
     model.release()
+
+if __name__ == '__main__':
+    main()
