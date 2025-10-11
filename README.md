@@ -25,7 +25,7 @@ This repo contains step-by-step instructions to perform Transfer Learning using 
 * [Custom Dataset](#custom-dataset)
   * [YOLO Annotation Format](#yolo-annotation-format)
   * [Config File](#config-file)
-  * [Cats and Dogs](#cats-and-dogs)
+  * [Apples and Oranges](#apples-and-oranges)
 * [Ultralytics YOLOv5](#ultralytics-yolov5)
   * [Requirements](#Requirements)
   * [COCO128](#coco128)
@@ -79,7 +79,7 @@ git submodule update --init yolov5
 
 What you do next will depend on your operating system. If you are using macOS, you will need to use Docker as [described below](#docker-optional).
 
-If you are using Linux or WSL, you should be able to proceed with Direct Installation. Docker is an option too, of course.
+If you are using Linux or WSL, you should be able to proceed with [Direct Installation](#direct-installation). Docker is an option too, of course.
 
 ### Direct Installation
 
@@ -89,7 +89,7 @@ Install requirements using `pip`. Note that these instructions may depend on whe
 pip3 install -r requirements.txt
 ```
 
-This will install dependencies for the scripts in [scripts](scripts) and [yolov5](./yolov5/).
+This will install dependencies for the scripts in [scripts](scripts) and [yolov5](yolov5).
 
 ### Docker (optional)
 
@@ -107,7 +107,7 @@ docker run -it --rm -v "$PWD:/workspace" yolov5-rknn
 
 ### Models (optional)
 
-You will also need to download any pretrained models that you want to use. These live in [models](./models). This repo includes `yolov5n.onnx` for convenience, so you only need to do this if you want to adapt another pretrained model.
+You will also need to download any pretrained models that you want to use. These live in [models](models). This repo includes `yolov5n.onnx` for convenience, so you only need to do this if you want to adapt another pretrained model.
 
 ## Conversion
 
@@ -185,18 +185,18 @@ You can follow the instructions in Khadas' [edge2-npu](https://github.com/khadas
 
 ## Custom Dataset
 
-Our goal is to construct a custom dataset that can be used to train a model for our own object detection task. The most straightforward way to do this is to find a dataset that is in YOLO Annotation Format already.
+Our goal now is to construct a custom dataset that can be used to train a model for our own object detection task. The most straightforward way to do this is to find a dataset that is in YOLO Annotation Format already.
 
-Alternatively, we can construct one ourselves! To do this, we need to prepare a set of example images and object annotations in a YOLO-compatible format.
+Alternatively, we can construct one ourselves! To do this, we need to prepare a set of example images and object annotations in a YOLO-compatible format. The high level steps are described below.
 
 ### YOLO Annotation Format
 
-The YOLOv5 annotation format is relatively simple. It assumes that each image has a corresponding .txt file with one line per object:
+The YOLOv5 annotation format is relatively simple. It assumes that each image has a corresponding .txt file, with one line per object that is labelled in the image:
 ```
 <class_id> <x_center> <y_center> <width> <height>
 ```
 
-There are no headers or image paths inside the .txt files. Each class is referred to by an integer (i.e. its class ID). All coordinates are normalized to range between 0.0 and 1.0.
+There are no headers or image paths inside these annotation .txt files. Each class is referred to by an integer (i.e. its class ID), and all coordinates are normalized to range between 0.0 and 1.0. This is illustrated below:
 
 ```
   0                 1
@@ -224,7 +224,7 @@ image002.txt
 
 ### Directory Structure
 
-Printing out the directory tree using `tree` should look something like this:
+Once you've constructed a dataset, printing out the directory tree using `tree` should look something like this:
 
 ```
 % tree . -L 3
@@ -247,9 +247,13 @@ Printing out the directory tree using `tree` should look something like this:
 22 directories, 61 files
 ```
 
-### Config File
+This example shows a dataset called `firearms`. Within the `firearms` directory, you would find subdirectories for `train`, `val`, and `test`. These are the training, validation and test splits of the data, respectively.
 
-Write a YAML file like custom.yaml:
+Note that there is a `firearms.yaml` file that corresponds to the `firearms` directory.
+
+### YAML File
+
+The YAML file for a dataset contains paths, class count and class names:
 
 ```
 train: /path/to/dataset/images/train
@@ -259,9 +263,72 @@ nc: 3  # number of classes
 names: ['class_a', 'class_b', 'class_c']
 ```
 
-### Cats and Dogs
+### Apples and Oranges
 
-TODO: Build the dataset
+Lets go about downloading the images and annotations for an "Apples and Oranges" dataset, using `OIDv6_Toolkit`:
+
+```bash
+python3 OIDv6_ToolKit/main.py downloader --classes Apple Orange --type_csv all
+```
+
+This will prompt you to download various missing files:
+
+class-descriptions-boxable.csv
+train-annotations-bbox.csv
+validation-annotations-bbox.csv
+test-annotations-bbox.csv
+
+Note: This prompt can be suppressed by ading the `-y` option:
+
+```bash
+python3 OIDv6_ToolKit/main.py downloader -y --classes Apple Orange --type_csv all
+```
+
+The `class-descriptions-boxable.csv` file is used when converting data into YOLO format. It provides a mapping between class label IDs and their human-readable names.
+
+The `train-*`, `test-*` and `validation-*` .csv files are part of the Open Images Dataset and contain the bounding box annotations for the images in each subset.
+
+The download may take a while, due to the number of images. The images will be downloaded to a directory called `OID`. Once the download is complete, we can inspect the structure of that directory using `tree`:
+
+```
+$ tree -d OID
+.
+├── Dataset
+│   ├── test
+│   │   ├── Apple
+│   │   │   └── Label
+│   │   └── Orange
+│   │       └── Label
+│   ├── train
+│   │   ├── Apple
+│   │   │   └── Label
+│   │   └── Orange
+│   │       └── Label
+│   └── validation
+│       ├── Apple
+│       │   └── Label
+│       └── Orange
+│           └── Label
+└── csv_folder
+
+8 directories
+```
+
+The next thing we need to do is convert the annotations to YOLO format:
+
+```bash
+python3 OIDv6_ToolKit/convert_annotations.py Apple Orange
+```
+
+This will write new annotation .txt files alongside the original JPEGs.
+
+Now we can move these into the datasets directory using the `prepare-dataset.sh` script:
+
+```bash
+./prepare-dataset.sh apples-oranges Apple Orange
+```
+
+This will output the restructured dataset in `datasets/apples-oranges`. It will also create a YAML file (`datasets/apples-oranges.yaml`) that describes the structure of the dataset.
 
 ## Ultralytics YOLOv5
 
@@ -290,14 +357,14 @@ python3 yolov5/train.py
 
 ### Training
 
-We can easily adapt this for other datasets, such as those that we prepared earlier (e.g. Cats and Dogs).
+We can easily adapt this for other datasets, such as those that we prepared earlier (e.g. Apples and Oranges).
 
 ```
 python yolov5/train.py \
   --img 640 \
   --batch 16 \
   --epochs 20 \
-  --data datasets/cats-and-dogs.yaml
+  --data datasets/apples-and-oranges.yaml
 ```
 
 TODO: Output
