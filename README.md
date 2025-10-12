@@ -26,6 +26,7 @@ This repo contains step-by-step instructions to perform Transfer Learning using 
   * [YOLO Annotation Format](#yolo-annotation-format)
   * [Config File](#config-file)
   * [Apples and Oranges](#apples-and-oranges)
+  * [Converting Annotations](#converting-annotations)
 * [Ultralytics YOLOv5](#ultralytics-yolov5)
   * [Requirements](#Requirements)
   * [COCO128](#coco128)
@@ -191,102 +192,103 @@ Alternatively, we can construct one ourselves! To do this, we need to prepare a 
 
 ### YOLO Annotation Format
 
-The YOLOv5 annotation format is relatively simple. It assumes that each image has a corresponding .txt file, with one line per object that is labelled in the image:
+The YOLOv5 annotation format is relatively simple. It assumes that each image has a corresponding .txt file, containing the 'labelled' data for that image. This is basically one line per object that has been identified in the image:
 ```
 <class_id> <x_center> <y_center> <width> <height>
 ```
 
-There are no headers or image paths inside these annotation .txt files. Each class is referred to by an integer (i.e. its class ID), and all coordinates are normalized to range between 0.0 and 1.0. This is illustrated below:
+There are no headers or image paths inside these annotation .txt files. Each class is referred to by an integer (i.e. its class ID), and all coordinates are normalized to range between 0.0 and 1.0. Normalisation is illustrated below:
 
 ```
+  |----- 300 px ----|
+
   0                 1
-0 |------------------
-  |                 |
-  |                 |
-  | |---------|     |
-  | | 0.6x0.3 |-----|-- y=0.5
-  | |---------|     |
-  |      |          |
-  |      |          |
-1 |------------------
+0 |------------------          -
+  |                 |          |
+  |                 |          |
+  | |---------|     |          |
+  | | 0.6x0.3 |-----|-- y=0.5  | 400 px
+  | |---------|     |          |
+  |      |          |          |
+  |      |          |          |
+1 |------------------          -
          |
        X=0.35
 ```
 
 Finally, each annotation file has the same base name as the image file, e.g.:
 ```
+# images
 image001.jpg
-image001.txt
 image002.jpg
+
+# labels
+image001.txt
 image002.txt
 ...
 ```
 
 ### Directory Structure
 
-Once you've constructed a dataset, printing out the directory tree using `tree` should look something like this:
+The dataset must follow a particular directory structure too:
 
 ```
-% tree . -L 3
-.
-├── datasets
-│   ├── firearms
-│   │   ├── images
-│   │   └── labels
-│   └── firearms.yaml
-└── yolov5
-    ├── benchmarks.py
-    ├── CITATION.cff
-    ├── classify
-    |
-    :   // trimmed for brevity //
-    |
-    ├── train.py
-    └── val.py
-
-22 directories, 61 files
+└── datasets
+    ├── firearms
+    │   ├── images
+    |   |   ├── test
+    |   |   ├── train
+    |   |   └── validation
+    │   └── labels
+    |       ├── test
+    |       ├── train
+    |       └── validation
+    └── firearms.yaml
 ```
 
-This example shows a dataset called `firearms`. Within the `firearms` directory, you would find subdirectories for `train`, `val`, and `test`. These are the training, validation and test splits of the data, respectively.
+This example shows a dataset called `firearms`. Within the `firearms` directory, there are subdirectories for `images` and `labels`. These are, in turn, divided into the subdirectories `train`, `val`, and `test`. These are the training, validation and test splits of the data, respectively.
 
-Note that there is a `firearms.yaml` file that corresponds to the `firearms` directory.
+At the top level, there is also a `firearms.yaml` file that corresponds to the `firearms` directory.
 
 ### YAML File
 
 The YAML file for a dataset contains paths, class count and class names:
 
 ```
-train: /path/to/dataset/images/train
-val: /path/to/dataset/images/val
+path: ../datasets/firearms
 
-nc: 3  # number of classes
-names: ['class_a', 'class_b', 'class_c']
+train: images/train
+test: images/test
+val: images/val
+
+names:
+  0: Rifle
+  1: Shotgun
+  2: Handgun
 ```
+
+The main `path` is relative to the `yolov5` submodule. The `train`, `test` and `val` paths are relative to the main path.
 
 ### Apples and Oranges
 
-Lets go about downloading the images and annotations for an "Apples and Oranges" dataset, using `OIDv6_Toolkit`:
+Lets proceed to downloading the images and annotations for an "Apples and Oranges" dataset, using `OIDv6_Toolkit`:
 
 ```bash
-python3 OIDv6_ToolKit/main.py downloader --classes Apple Orange --type_csv all
+python OIDv6_ToolKit/main.py downloader --classes Apple Orange --type_csv all
 ```
 
 This will prompt you to download various missing files:
 
-class-descriptions-boxable.csv
-train-annotations-bbox.csv
-validation-annotations-bbox.csv
-test-annotations-bbox.csv
+* `class-descriptions-boxable.csv`
+* `train-annotations-bbox.csv`
+* `validation-annotations-bbox.csv`
+* `test-annotations-bbox.csv`
 
-Note: This prompt can be suppressed by ading the `-y` option:
+Note: This prompt can be suppressed by adding the `-y` option, ensuring that all files are downloaded automatically:
 
 ```bash
-python3 OIDv6_ToolKit/main.py downloader -y --classes Apple Orange --type_csv all
+python OIDv6_ToolKit/main.py downloader -y --classes Apple Orange --type_csv all
 ```
-
-The `class-descriptions-boxable.csv` file is used when converting data into YOLO format. It provides a mapping between class label IDs and their human-readable names.
-
-The `train-*`, `test-*` and `validation-*` .csv files are part of the Open Images Dataset and contain the bounding box annotations for the images in each subset.
 
 The download may take a while, due to the number of images. The images will be downloaded to a directory called `OID`. Once the download is complete, we can inspect the structure of that directory using `tree`:
 
@@ -314,13 +316,41 @@ $ tree -d OID
 8 directories
 ```
 
-The next thing we need to do is convert the annotations to YOLO format:
+This isn't yet what we need for YOLO, so lets proceed to converting annotations and preparing the dataset.
+
+### Converting Annotations
+
+The OID dataset includes four CSV files, containing metadata that we need for training:
+
+* The `class-descriptions-boxable.csv` file is used when converting data into YOLO format. It provides a mapping between class label IDs and their human-readable names.
+* The other three files (`train-annotations-bbox.csv`, `test-annotations-bbox.csv` and `validation-annotations-bbox.csv`) contain bounding box annotations for the images in each subset.
+
+The next thing we need to do is convert the annotations to YOLO format. We have adapted the `convert_annotations.py` script from OIDv6_Toolkit, to make this more convenient:
 
 ```bash
-python3 OIDv6_ToolKit/convert_annotations.py Apple Orange
+./convert-annotations.py Apple Orange
 ```
 
-This will write new annotation .txt files alongside the original JPEGs.
+This will create a new annotation file alongside each of the original JPEG files, showing progress meters
+
+```
+% ./convert-annotations.py Apple Orange
+Currently in subdirectory: test
+Converting annotations for class:  Apple
+100%|█████████████████████████████████████████████████████| 144/144 [00:01<00:00, 109.78it/s]
+Converting annotations for class:  Orange
+100%|█████████████████████████████████████████████████████| 208/208 [00:03<00:00, 62.80it/s]
+Currently in subdirectory: train
+Converting annotations for class:  Apple
+100%|█████████████████████████████████████████████████████| 1078/1078 [00:14<00:00, 76.54it/s]
+Converting annotations for class:  Orange
+100%|█████████████████████████████████████████████████████| 900/900 [00:20<00:00, 43.77it/s]
+Currently in subdirectory: validation
+Converting annotations for class:  Apple
+100%|█████████████████████████████████████████████████████| 46/46 [00:00<00:00, 105.55it/s]
+Converting annotations for class:  Orange
+100%|█████████████████████████████████████████████████████| 61/61 [00:00<00:00, 108.31it/s]
+```
 
 Now we can move these into the datasets directory using the `prepare-dataset.sh` script:
 
@@ -328,7 +358,63 @@ Now we can move these into the datasets directory using the `prepare-dataset.sh`
 ./prepare-dataset.sh apples-oranges Apple Orange
 ```
 
-This will output the restructured dataset in `datasets/apples-oranges`. It will also create a YAML file (`datasets/apples-oranges.yaml`) that describes the structure of the dataset.
+This will also show progress:
+
+```
+% ./prepare-dataset.sh apples-oranges Apple Orange
+Preparing dataset directory: datasets/apples-oranges
+Moving annotations...
+Moving images and labels...
+- subset train
+  - class Apple
+    - copying images
+    - copying labels
+  - class Orange
+    - copying images
+    - copying labels
+- subset test
+  - class Apple
+    - copying images
+    - copying labels
+  - class Orange
+    - copying images
+    - copying labels
+- subset validation
+  - class Apple
+    - copying images
+    - copying labels
+  - class Orange
+    - copying images
+    - copying labels
+Writing yaml file...
+Done!
+```
+
+This will output the restructured dataset in `datasets/apples-oranges`. It will also create a YAML file (`datasets/apples-oranges.yaml`) that describes the structure of the dataset. We can inspect the final directory layout using `tree`:
+
+```
+% tree -d datasets
+datasets
+└── apples-oranges
+    ├── annotations
+    ├── images
+    │   ├── test
+    │   ├── train
+    │   └── validation
+    └── labels
+        ├── test
+        ├── train
+        └── validation
+
+11 directories
+```
+
+This looks just the `firearms` dataset we were using as a reference, and also includes an `annotations` directory. This contains the annotation CSV files we downloaded earlier:
+
+* `class-descriptions-boxable.csv`
+* `train-annotations-bbox.csv`
+* `validation-annotations-bbox.csv`
+* `test-annotations-bbox.csv`
 
 ## Ultralytics YOLOv5
 
@@ -383,7 +469,7 @@ TODO: Output
 
 TODO: Discuss mAP, etc
 
-## Deploymnet
+## Deployment
 
 Once satisfied with the results, we can deploy the model to our Edge2 device. First we need to convert the model to RKNN format, as described in the [Conversion](#conversion) section.
 
