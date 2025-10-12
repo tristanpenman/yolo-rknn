@@ -1,4 +1,6 @@
 *.rknn
+datasets/*
 result/*
 models/*.onnx
+OID
 __pycache__
