@@ -1,6 +1,8 @@
 # YOLOv5 RKNN
 
-This repo contains step-by-step instructions to perform Transfer Learning using YOLOv5 pretrained weights. Starting from YOLOv5 pretrained weights, we train a special-purpose object detection model. Initially, the custom model will be stored in PyTorch (`.pt`) format. We then convert this to RKNN format, allowing it to run natively on a Rockchip RK3588 NPU.
+This repo contains step-by-step instructions for using Transfer Learning to train a custom YOLOv5 Object Detector, starting from pretrained weights.
+
+After training, the custom model will be stored in PyTorch (`.pt`) format. We then convert this to RKNN format, allowing it to run natively on a Rockchip RK3588 NPU.
 
 > [!NOTE]
 > See my blog post [Edge AI using the Rockchip NPU](https://tristanpenman.com/blog/posts/2025/07/20/edge-ai-using-the-rockchip-npu/) for a high level overview of how all of this works. This includes technical information about the Rockchip RK3588 platform.
@@ -633,7 +635,8 @@ Once the export is complete, you can see that the model has been saved as `yolov
 Fusing layers...
 Model summary: 157 layers, 7015519 parameters, 0 gradients, 15.8 GFLOPs
 
-PyTorch: starting from yolov5/runs/train/exp1/weights/best.pt with output shape (1, 25200, 7) (13.7 MB)
+PyTorch: starting from yolov5/runs/train/exp1/weights/best.pt with output shape
+(1, 25200, 7) (13.7 MB)
 
 ONNX: starting export with onnx 1.18.0...
 ONNX: export success ✅ 0.8s, saved as yolov5/runs/train/exp1/weights/best.onnx (27.2 MB)
@@ -642,7 +645,9 @@ Export complete (1.1s)
 Results saved to /home/tristan/Workspace/yolov5-rknn/yolov5/runs/train/exp1/weights
 Detect:          python detect.py --weights yolov5/runs/train/exp1/weights/best.onnx
 Validate:        python val.py --weights yolov5/runs/train/exp1/weights/best.onnx
-PyTorch Hub:     model = torch.hub.load('ultralytics/yolov5', 'custom', 'yolov5/runs/train/exp1/weights/best.onnx')
+PyTorch Hub:     model = torch.hub.load('ultralytics/yolov5',
+                                        'custom',
+                                        'yolov5/runs/train/exp1/weights/best.onnx')
 Visualize:       https://netron.app
 ```
 
