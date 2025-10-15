@@ -18,7 +18,7 @@ seaborn>=0.11.0
 setuptools>=70.0.0
 six
 thop>=0.1.1
-torch>=1.8.0
+torch>=1.8.0,<2.4.0
 torchvision>=0.9.0
 tqdm
 tqdm>=4.66.3
