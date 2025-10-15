@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # pylint: disable=invalid-name
 
 import os
