@@ -252,7 +252,7 @@ At the top level, there is also a `firearms.yaml` file that corresponds to the `
 
 ### YAML File
 
-The YAML file for a dataset contains paths, class count and class names:
+The YAML file for a dataset contains paths to the training data, and a mapping from class IDs to class names:
 
 ```
 path: ../datasets/firearms
@@ -267,11 +267,11 @@ names:
   2: Handgun
 ```
 
-The main `path` is relative to the `yolov5` submodule. The `train`, `test` and `val` paths are relative to the main path.
+Note: Due to the layout of this repo, the main `path:` is relative to the `yolov5` submodule. The `train`, `test` and `val` paths are relative to the main path.
 
 ### Apples and Oranges
 
-Lets proceed to downloading the images and annotations for an "Apples and Oranges" dataset, using `OIDv6_Toolkit`:
+Lets build our own dataset. Begin by downloading the images and annotations for an "Apples and Oranges" dataset, using `OIDv6_Toolkit`:
 
 ```bash
 python OIDv6_ToolKit/main.py downloader --classes Apple Orange --type_csv all
@@ -284,7 +284,7 @@ This will prompt you to download various missing files:
 * `validation-annotations-bbox.csv`
 * `test-annotations-bbox.csv`
 
-Note: This prompt can be suppressed by adding the `-y` option, ensuring that all files are downloaded automatically:
+Alternatively, the prompt can be suppressed by adding the `-y` option, ensuring that all files are downloaded automatically:
 
 ```bash
 python OIDv6_ToolKit/main.py downloader -y --classes Apple Orange --type_csv all
@@ -316,7 +316,7 @@ $ tree -d OID
 8 directories
 ```
 
-This isn't yet what we need for YOLO, so lets proceed to converting annotations and preparing the dataset.
+This isn't quite what we need for YOLO, so lets proceed to converting annotations and preparing the dataset.
 
 ### Converting Annotations
 
@@ -358,7 +358,9 @@ Now we can move these into the datasets directory using the `prepare-dataset.sh`
 ./prepare-dataset.sh apples-oranges Apple Orange
 ```
 
-This will also show progress:
+The arguments are simply a dataset name (`apples-oranges`), then a list of the classes to be included (`Apple`, `Orange`).
+
+This script will show progress while restructuring the data:
 
 ```
 % ./prepare-dataset.sh apples-oranges Apple Orange
@@ -390,7 +392,9 @@ Writing yaml file...
 Done!
 ```
 
-This will output the restructured dataset in `datasets/apples-oranges`. It will also create a YAML file (`datasets/apples-oranges.yaml`) that describes the structure of the dataset. We can inspect the final directory layout using `tree`:
+The final dataset will be placed in `datasets/apples-oranges`. It will also create a YAML file (`datasets/apples-oranges.yaml`) that follows the same YAML file format described above.
+
+We can inspect the final directory layout using `tree`:
 
 ```
 % tree -d datasets
@@ -424,7 +428,7 @@ The next few steps will tackle this at a high level. For more detail, the Ultral
 
 ### Requirements
 
-The Ultralytics `yolov5` repo has been included as a submodule. Its Python dependencies are included in the main `requirements.txt` file, so they should be installed already.
+The Ultralytics `yolov5` repo has been included as a submodule. Its Python dependencies are included in the main `requirements.txt` file, so they should be installed already if you followed the [Prerequisites](#prerequisites) section.
 
 If in doubt, you can re-run `pip` at the top-level of this repo:
 ```
@@ -439,7 +443,93 @@ By default, Ultralytics YOLOv5 will use a subset of COCO (specifically, COCO128)
 python3 yolov5/train.py
 ```
 
-**Note**: This will automatically download the COCO128 dataset to the [datasets](./datasets) directory. This directory is ignored by `.gitignore`, but you should still take care to _not_ commit any data files into the repo.
+**Note**: This will automatically download the COCO128 dataset to the [datasets](./datasets) directory (relative to the current directory when the script is executed).
+
+This will generate A LOT of output from the training process. But what we care about are the results at the end of training:
+
+```
+Validating yolov5/runs/train/exp1/weights/best.pt...
+Fusing layers...
+Model summary: 157 layers, 7225885 parameters, 0 gradients, 16.4 GFLOPs
+                 Class     Images  Instances          P          R      mAP5    mAP50-95
+                   all        128        929      0.921      0.906      0.963      0.784
+                person        128        254      0.989      0.878      0.966      0.776
+               bicycle        128          6      0.988          1      0.995      0.688
+                   car        128         46          1      0.663      0.778      0.442
+            motorcycle        128          5      0.935          1      0.995      0.932
+              airplane        128          6      0.941          1      0.995      0.919
+                   bus        128          7      0.923          1      0.995      0.863
+                 train        128          3       0.91          1      0.995      0.895
+                 truck        128         12      0.971      0.833      0.977       0.74
+                  boat        128          6      0.727      0.893      0.955      0.659
+         traffic light        128         14          1      0.616      0.811      0.427
+             stop sign        128          2       0.88          1      0.995      0.895
+                 bench        128          9          1      0.954      0.995       0.69
+                  bird        128         16      0.978          1      0.995      0.846
+                   cat        128          4          1      0.919      0.995      0.922
+                   dog        128          9       0.97          1      0.995      0.878
+                 horse        128          2      0.845          1      0.995      0.895
+              elephant        128         17      0.979      0.941      0.967      0.846
+                  bear        128          1       0.79          1      0.995      0.995
+                 zebra        128          4      0.914          1      0.995      0.995
+               giraffe        128          9      0.973          1      0.995       0.89
+              backpack        128          6          1      0.931      0.995      0.712
+              umbrella        128         18      0.982      0.944      0.961      0.785
+               handbag        128         19      0.971      0.842      0.886      0.627
+                   tie        128          7      0.961      0.857      0.858      0.694
+              suitcase        128          4      0.932          1      0.995      0.865
+               frisbee        128          5          1      0.932      0.995      0.785
+                  skis        128          1      0.835          1      0.995      0.697
+             snowboard        128          7      0.989      0.857       0.93      0.693
+           sports ball        128          6          1      0.788      0.837      0.469
+                  kite        128         10      0.967          1      0.995      0.638
+          baseball bat        128          4          1      0.682      0.995       0.66
+        baseball glove        128          7      0.789      0.571      0.668      0.446
+            skateboard        128          5      0.937          1      0.995      0.832
+         tennis racket        128          7      0.723      0.751      0.823      0.584
+                bottle        128         18      0.932       0.76      0.951      0.642
+            wine glass        128         16      0.854      0.732      0.928      0.636
+                   cup        128         36      0.938      0.972      0.972      0.765
+                  fork        128          6          1      0.906      0.995      0.862
+                 knife        128         16          1      0.841       0.96       0.64
+                 spoon        128         22      0.949      0.909      0.983      0.675
+                  bowl        128         28      0.908      0.857      0.886      0.747
+                banana        128          1      0.846          1      0.995      0.995
+              sandwich        128          2      0.649          1      0.995      0.945
+                orange        128          4      0.904          1      0.995      0.852
+              broccoli        128         11      0.963          1      0.995       0.78
+                carrot        128         24      0.919      0.948      0.989      0.779
+               hot dog        128          2      0.858          1      0.995      0.895
+                 pizza        128          5      0.951          1      0.995      0.879
+                 donut        128         14      0.971          1      0.995       0.91
+                  cake        128          4      0.912          1      0.995      0.964
+                 chair        128         35      0.943      0.947      0.987      0.781
+                 couch        128          6      0.903          1      0.995      0.979
+          potted plant        128         14      0.974          1      0.995      0.887
+                   bed        128          3      0.901          1      0.995      0.995
+          dining table        128         13          1      0.856      0.982       0.82
+                toilet        128          2      0.868          1      0.995      0.995
+                    tv        128          2      0.855          1      0.995      0.895
+                laptop        128          3      0.755      0.667      0.913      0.682
+                 mouse        128          2       0.88          1      0.995      0.597
+                remote        128          8      0.754       0.75      0.794      0.636
+            cell phone        128          8      0.907      0.875      0.982      0.681
+             microwave        128          3      0.899          1      0.995      0.963
+                  oven        128          5       0.94          1      0.995      0.917
+                  sink        128          6      0.912      0.833      0.922      0.762
+          refrigerator        128          5      0.932          1      0.995      0.891
+                  book        128         29      0.949      0.647      0.896      0.592
+                 clock        128          9      0.967          1      0.995      0.866
+                  vase        128          2      0.861          1      0.995      0.895
+              scissors        128          1          1          0      0.995      0.464
+            teddy bear        128         21       0.97          1      0.995       0.87
+            toothbrush        128          5      0.894          1      0.995       0.86
+Results saved to yolov5/runs/train/exp1
+```
+
+The key detail we need to extract from this is `yolov5/runs/train/exp1/weights/best.pt`, which is the path the weights at the end of training. These are stored in PyTorch format, hence the `.pt` extension.
+
+Note also that the path includes `exp1`, which is the current 'experiment' number. This will be incremented each time you run `train.py`.
 
 ### Training
 
@@ -450,20 +540,38 @@ python yolov5/train.py \
   --img 640 \
   --batch 16 \
   --epochs 20 \
-  --data datasets/apples-and-oranges.yaml
+  --data datasets/apples-oranges.yaml
 ```
 
-TODO: Output
+While this is running, you can see the progress of each epoch (slightly cleaned up for readability):
 
-You can see the progress of each epoch:
+```
+Epoch    GPU_mem   box_loss   obj_loss   cls_loss  Instances       Size
+12/19      3.69G     0.0392    0.05197   0.002492        112        640
+           Class     Images  Instances          P          R      mAP50   mAP50-95
+             all        107        277      0.423      0.545      0.433      0.341
+```
 
-TODO: Output
+This can be read as two pairs of rows. The first row of each pair contains attributes, and the second row contains values.
 
-This shows the box, object and class loss scores. It also shows mAP scores for each iteration. See the YOLO documentation to understand how these values should be interpreted.
+Some of the most interesting values here are the box loss, object loss and class loss scores. See the YOLO documentation to understand how these values should be interpreted.
+
+We can also see the mAP scores for each iteration - these are described in the [Evaluation](#evaluation) section below.
 
 Once training is complete, you'll see the final scores:
 
-TODO: Output
+```
+Validating yolov5/runs/train/exp2/weights/best.pt...
+Fusing layers...
+Model summary: 157 layers, 7015519 parameters, 0 gradients, 15.8 GFLOPs
+                 Class     Images  Instances          P          R      mAP50   mAP50-95
+                   all        107        277      0.473      0.512      0.469      0.374
+                 Apple        107        102      0.652      0.578      0.613      0.489
+                Orange        107        175      0.294      0.446      0.325       0.26
+Results saved to yolov5/runs/train/exp2
+```
+
+This is much more compact than earlier, because there are only two classes to evaluate.
 
 ### Evaluation
 
@@ -471,9 +579,8 @@ TODO: Discuss mAP, etc
 
 ## Deployment
 
-Once satisfied with the results, we can deploy the model to our Edge2 device. First we need to convert the model to RKNN format, as described in the [Conversion](#conversion) section.
 
-The model trained by Ultralytics YOLOv5 will be in PyTorch format. We need to figure out how to convert
+Once satisfied with the results, we can deploy the model to our Edge2 device. But in order to do this, we must convert the fine-tuned model to RKNN format, following the same steps covered in the [Conversion](#conversion) section above.
 
 ### ONNX Format
 
@@ -481,17 +588,32 @@ The first step is to convert the model to ONNX format:
 
 ```
 python yolov5/export.py \
-  --data datasets/firearms.yaml \
+  --data datasets/apples-oranges.yaml \
   --include onnx \
-  --weights yolov5/runs/train/exp12/weights/best.pt \
+  --weights yolov5/runs/train/exp1/weights/best.pt \
   --img 640
 ```
 
 We use the `--data` option to specify the dataset we've used, which can be used to configure the number of outputs in the model. We provide the path to the latest model using `--weights`, and the image size using `--img`. Finally, we specify `--include onnx` to export to ONNX format.
 
-TODO: Example
+Once the export is complete, you can see that the model has been saved as `yolov5/runs/train/exp1/weights/best.onnx`. Output from the conversion process should look similar to this:
 
-Once the export is complete, you can see that the model has been saved as `yolov5/runs/train/exp12/weights/best.onnx`.
+```
+Fusing layers...
+Model summary: 157 layers, 7015519 parameters, 0 gradients, 15.8 GFLOPs
+
+PyTorch: starting from yolov5/runs/train/exp1/weights/best.pt with output shape (1, 25200, 7) (13.7 MB)
+
+ONNX: starting export with onnx 1.18.0...
+ONNX: export success ✅ 0.8s, saved as yolov5/runs/train/exp1/weights/best.onnx (27.2 MB)
+
+Export complete (1.1s)
+Results saved to /home/tristan/Workspace/yolov5-rknn/yolov5/runs/train/exp1/weights
+Detect:          python detect.py --weights yolov5/runs/train/exp1/weights/best.onnx
+Validate:        python val.py --weights yolov5/runs/train/exp1/weights/best.onnx
+PyTorch Hub:     model = torch.hub.load('ultralytics/yolov5', 'custom', 'yolov5/runs/train/exp1/weights/best.onnx')
+Visualize:       https://netron.app
+```
 
 Converting from ONNX to RKNN is a little more involved...
 
