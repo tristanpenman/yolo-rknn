@@ -36,6 +36,7 @@ This repo contains step-by-step instructions to perform Transfer Learning using 
   * [ONNX Format](#onnx-format)
   * [Calibration](#calibration)
   * [RKNN Format](#rknn-format)
+* [License](#license)
 
 ## Background
 
