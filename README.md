@@ -39,7 +39,17 @@ This repo contains step-by-step instructions to perform Transfer Learning using 
 
 ## Background
 
-A few concepts to get out of the way...
+Before we begin, it's important to understand the problem that we're trying to solve. There are many problems in computer vision, and these can overlap in various ways.
+
+The image below shows several examples:
+
+* **Labelling**: In the top-left, the image is being labelled (or annotated) with the kinds of objects identified.
+* **Segmentation**: In the bottom left and right, those objects have been cut out of the image using _Image Segmentation_.
+* **Detection**: And in the top-right, we can see bounding boxes drawn around those same objects. This is commonly known as _Object Detection_.
+
+![COCO Segmentation](coco-segmentation.png)
+
+The focus of this exercise is to train an Object Detection model.
 
 ### Transfer Learning
 
