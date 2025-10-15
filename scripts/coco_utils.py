@@ -1,3 +1,9 @@
+# -----------------------------------------------------------------------------
+# Adapted from RKNN Toolkit 2.
+#
+# This code was originally released under the BSD 3-Clause "New" or "Revised" License.
+# -----------------------------------------------------------------------------
+
 import json
 from copy import copy
 

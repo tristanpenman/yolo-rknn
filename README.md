@@ -692,3 +692,13 @@ python3 rknn/convert.py \
 The output should look like this:
 
 TODO: include output
+
+## License
+
+This repo contains code derived from multiple projects, each released under a different license:
+
+* [yolov5](https://github.com/ultralytics/yolov5) - AGPL-3.0 License
+* [OIDv6_Toolkit](https://github.com/Bukkster/OIDv6_ToolKit) - GPL-3.0 License
+* [RKNN Toolkit2](https://github.com/rockchip-linux/rknn-toolkit2) - BSD 3-Clause "New" or "Revised" License
+
+It is your responsibility to adhere to the relevant license if adapting this code for use in your own projects.
