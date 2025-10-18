@@ -1,0 +1,8 @@
+services:
+  yolov5-rknn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: /bibn/bash
+    volumes:
+      - .:/workspace

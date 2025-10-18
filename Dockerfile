@@ -1,24 +1,25 @@
-FROM python:3.12-slim
+# check=skip=FromPlatformFlagConstDisallowed
+
+FROM --platform=linux/amd64 python:3.12-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN useradd -ms /bin/bash devuser
-
 RUN apt-get update \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends \
         build-essential \
         curl \
         git \
         unzip \
-    && apt-get clean
-
-COPY requirements.txt .
-
-RUN pip3 install --upgrade pip \
-    && pip3 install -r requirements.txt
-
-USER devuser
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 
-CMD [ "bash" ]
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+COPY requirements.txt /tmp/requirements.txt
+
+RUN python -m venv "$VIRTUAL_ENV" \
+    && python -m pip install --upgrade pip \
+    && python -m pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
