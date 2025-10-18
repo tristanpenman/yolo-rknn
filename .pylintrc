@@ -9,6 +9,7 @@ disable=
     consider-merging-isinstance,
     consider-using-f-string,
     consider-using-sys-exit,
+    line-too-long,
     missing-docstring,
     missing-module-docstring,
     missing-class-docstring,

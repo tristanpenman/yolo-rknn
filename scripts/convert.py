@@ -41,7 +41,7 @@ def parse_arg():
 
     return model_path, platform, do_quant, output_path, dataset_path
 
-if __name__ == '__main__':
+def main():
     model_path, platform, do_quant, output_path, dataset_path = parse_arg()
 
     # Create RKNN object
@@ -79,3 +79,6 @@ if __name__ == '__main__':
 
     # Release
     rknn.release()
+
+if __name__ == '__main__':
+    main()
