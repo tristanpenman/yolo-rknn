@@ -1,4 +1,3 @@
-awscli
 gitpython>=3.1.30
 matplotlib>=3.3
 numpy>=1.23.5
@@ -9,8 +8,7 @@ pillow>=10.3.0
 psutil
 pycocotools
 python3-xlib
-pyyaml
-PyYAML>=5.3.1
+pyyaml>=5.3.1
 requests==2.32.4
 rknn-toolkit2==2.3.2
 scipy>=1.4.1
@@ -20,7 +18,6 @@ six
 thop>=0.1.1
 torch>=1.8.0,<2.4.0
 torchvision>=0.9.0
-tqdm
 tqdm>=4.66.3
 ultralytics>=8.2.34
 urllib3>=2.5.0
