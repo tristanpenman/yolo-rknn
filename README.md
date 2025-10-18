@@ -158,7 +158,7 @@ The `dataset_path` refers to a file containing a list of images to be used for c
 
 Convert the model by running the following:
 ```
-python3 rknn/convert.py models/yolov5n.onnx coco_subset_20.txt rk3588
+python3 scripts/convert.py models/yolov5n.onnx coco_subset_20.txt rk3588
 ```
 
 The output should look something like this (some detail omitted):

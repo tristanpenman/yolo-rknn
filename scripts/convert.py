@@ -8,27 +8,24 @@ import sys
 
 from rknn.api import RKNN
 
-DATASET_PATH = 'coco_subset_20.txt'
 DEFAULT_RKNN_PATH = 'yolov5.rknn'
 DEFAULT_QUANT = True
 
-PLATFORMS = ['rk3562', 'rk3566', 'rk3568', 'rk3576', 'rk3588', 'rv1103',
-             'rv1106', 'rv1126b', 'rv1109', 'rv1126', 'rk1808']
-
-def parse_args():
+def parse_arg():
     if len(sys.argv) < 3:
-        print("Usage: python3 {} <onnx_path> [platform] [dtype] [output_path]".format(sys.argv[0]))
-        print("       platform choose from: {}".format(', '.join(PLATFORMS)))
-        print("       dtype choose from [i8, fp] for: rk3562, rk3566, rk3568, rk3576, rk3588, rv1103, rv1106, rv1126b")
-        print("       dtype choose from [u8, fp] for: rv1109, rv1126, rk1808")
+        print("Usage: python3 {} <onnx_model_path> <dataset_path> <platform> [dtype(optional)] [output_rknn_path(optional)]".format(sys.argv[0]))
+        print("         platform choose from [rk3562, rk3566, rk3568, rk3576, rk3588, rv1103, rv1106, rv1126b, rv1109, rv1126, rk1808]")
+        print("         dtype choose from [i8, fp] for [rk3562, rk3566, rk3568, rk3576, rk3588, rv1103, rv1106, rv1126b]")
+        print("         dtype choose from [u8, fp] for [rv1109, rv1126, rk1808]")
         exit(1)
 
     model_path = sys.argv[1]
-    platform = sys.argv[2]
-    do_quant = DEFAULT_QUANT
+    dataset_path = sys.argv[2]
+    platform = sys.argv[3]
 
-    if len(sys.argv) > 3:
-        model_type = sys.argv[3]
+    do_quant = DEFAULT_QUANT
+    if len(sys.argv) > 4:
+        model_type = sys.argv[4]
         if model_type not in ['i8', 'u8', 'fp']:
             print("ERROR: Invalid model type: {}".format(model_type))
             exit(1)
@@ -37,15 +34,15 @@ def parse_args():
         else:
             do_quant = False
 
-    if len(sys.argv) > 4:
-        output_path = sys.argv[4]
+    if len(sys.argv) > 5:
+        output_path = sys.argv[5]
     else:
         output_path = DEFAULT_RKNN_PATH
 
-    return model_path, platform, do_quant, output_path
+    return model_path, platform, do_quant, output_path, dataset_path
 
-def main():
-    model_path, platform, do_quant, output_path = parse_args()
+if __name__ == '__main__':
+    model_path, platform, do_quant, output_path, dataset_path = parse_arg()
 
     # Create RKNN object
     rknn = RKNN(verbose=False)
@@ -53,7 +50,7 @@ def main():
     # Pre-process config
     print('--> Config model')
     rknn.config(mean_values=[[0, 0, 0]], std_values=[
-        [255, 255, 255]], target_platform=platform)
+                    [255, 255, 255]], target_platform=platform)
     print('done')
 
     # Load model
@@ -66,22 +63,19 @@ def main():
 
     # Build model
     print('--> Building model')
-    ret = rknn.build(do_quantization=do_quant, dataset=DATASET_PATH)
+    ret = rknn.build(do_quantization=do_quant, dataset=dataset_path)
     if ret != 0:
         print('Build model failed!')
         exit(ret)
     print('done')
 
-    # Export RKNN model
-    print('--> Export RKNN model')
+    # Export rknn model
+    print('--> Export rknn model')
     ret = rknn.export_rknn(output_path)
     if ret != 0:
-        print('Export RKNN model failed!')
+        print('Export rknn model failed!')
         exit(ret)
     print('done')
 
     # Release
     rknn.release()
-
-if __name__ == '__main__':
-    main()
