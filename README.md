@@ -162,11 +162,16 @@ Usage: python3 convert.py <onnx_model_path> <dataset_path> <platform> [dtype(opt
 The `<dataset_path>` refers to a file containing a list of images to be used for calibration. We can use `coco_subset_20.txt` for now. This contains a subset of COCO images, making it appropriate for this task.
 
 Convert the model by running the following:
+
 ```
-python3 scripts/convert.py models/yolov5n.onnx coco_subset_20.txt rk3588
+python3 scripts/convert.py \
+    models/yolov5n.onnx \
+    coco_subset_20.txt \
+    rk3588
 ```
 
 The output should look something like this (some detail omitted):
+
 ```
 I rknn-toolkit2 version: 2.3.2
 --> Config model
@@ -628,7 +633,18 @@ python yolov5/train.py \
   --epochs 100 \
   --data datasets/apples-oranges.yaml
 
-TODO: Check improvements
+```
+Validating yolov5/runs/train/exp3/weights/best.pt...
+Fusing layers...
+Model summary: 157 layers, 7015519 parameters, 0 gradients, 15.8 GFLOPs
+                 Class     Images  Instances          P          R      mAP50   mAP50-95
+                   all        107        277      0.445      0.607       0.47      0.383
+                 Apple        107        102      0.588      0.637      0.564      0.458
+                Orange        107        175      0.302      0.577      0.376      0.309
+Results saved to yolov5/runs/train/exp3
+```
+
+Well that didn't help. Despite running for 100 epochs, we saw marginal improvement for Oranges, and slight dip in Apples, and the overall mAP50 score is almost exactly the same.
 
 TODO: Inspect the data
 
@@ -644,9 +660,12 @@ The first step is to convert the model to ONNX format:
 python yolov5/export.py \
   --data datasets/apples-oranges.yaml \
   --include onnx \
-  --weights yolov5/runs/train/exp1/weights/best.pt \
+  --weights yolov5/runs/train/exp3/weights/best.pt \
   --img 640
 ```
+
+> [!WARNING]
+> Warning: Be careful to specify the correct `exp<num>` directory! In this case, I'm using `exp3`.
 
 We use the `--data` option to specify the dataset we've used, which can be used to configure the number of outputs in the model. We provide the path to the latest model using `--weights`, and the image size using `--img`. Finally, we specify `--include onnx` to export to ONNX format.
 
@@ -682,26 +701,26 @@ We can do this using just 10 examples.
 
 What's the easiest way to copy 10 random files from a directory using standard Linux/Unix command line tools? We can combine `find`, `shuf` and `xargs`:
 
-```
+```bash
 find /path/to/dir -type f | shuf -n 10 | xargs -I{} cp {} /destination/dir
 ```
 
 For example, from the top-level `yolov5-transfer-learning` directory:
 
-```
+```bash
 mkdir apples-oranges-calib
 find datasets/apples-oranges -type f -name '*.jpg' | shuf -n 100 | xargs -I{} cp {} apples-oranges-calib
 ```
 
 Then we can create a list of relative paths to the images in that directory:
 
-```
+```bash
 find apples-oranges-calib -type f -exec echo "./{}" \; > apples-oranges-calib.txt
 ```
 
 We should also check the output:
 
-```
+```bash
 $ head apples-oranges-calib.txt
 ./apples-oranges-calib/69974d01b659acfe.jpg
 ./apples-oranges-calib/326cd1e8ed154d23.jpg
@@ -719,16 +738,45 @@ $ head apples-oranges-calib.txt
 
 We're finally ready to run the RKNN `convert.py` script using the new calibration dataset:
 
-```
-python3 rknn/convert.py \
-  yolov5/runs/train/exp12/weights/best.onnx \
+```bash
+python3 scripts/convert.py \
+  yolov5/runs/train/exp3/weights/best.onnx \
   apples-oranges-calib.txt \
   rk3588
 ```
 
-The output should look like this:
+Once again, be careful to specify the correct `exp<num>` directory!
 
-TODO: include output
+The output should look like this (some detail omitted):
+
+```
+I rknn-toolkit2 version: 2.3.2
+--> Config model
+done
+--> Loading model
+I Loading : ...
+done
+--> Building model
+I OpFusing 0 ...
+I OpFusing 1 ...
+I OpFusing 0 ...
+I OpFusing 1 ...
+I OpFusing 2 ...
+W build: found outlier value, this may affect quantization accuracy
+                        const name               abs_mean    abs_std     outlier value
+                        model.0.conv.weight      0.83        1.42        15.054
+I GraphPreparing ...
+I Quantizating ...
+W build: The default input dtype of 'images' is changed from 'float32' to 'int8' in rknn model for performance!
+                       Please take care of this change when deploy rknn model with Runtime API!
+W build: The default output dtype of 'output0' is changed from 'float32' to 'int8' in rknn model for performance!
+                      Please take care of this change when deploy rknn model with Runtime API!
+I rknn building ...
+I rknn building done.
+done
+--> Export rknn model
+done
+```
 
 ## License
 
