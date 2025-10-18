@@ -33,7 +33,10 @@ After training, the custom model will be stored in PyTorch (`.pt`) format. We th
   * [Requirements](#Requirements)
   * [COCO128](#coco128)
   * [Training](#training)
-  * [Evaluation](#evaluation)
+* [Evaluation](#evaluation)
+  * [Intersection over Union](#intersection-over-union)
+  * [Interpretation](#interpretation)
+  * [Possible Improvements](#possible-improvements)
 * [Deployment](#deployment)
   * [ONNX Format](#onnx-format)
   * [Calibration](#calibration)
@@ -149,12 +152,14 @@ We'll begin by converting and quantising a pretrained ONNX model to RKNN format.
 
 The conversion script (`convert.py`) takes the follow command line arguments:
 
-    Usage: python3 convert.py <onnx_model_path> <dataset_path> <platform> [dtype(optional)] [output_rknn_path(optional)]
-              platform choose from [rk3562, rk3566, rk3568, rk3576, rk3588, rv1103, rv1106, rv1126b, rv1109, rv1126, rk1808]
-              dtype choose from [i8, fp] for [rk3562, rk3566, rk3568, rk3576, rk3588, rv1103, rv1106, rv1126b]
-              dtype choose from [u8, fp] for [rv1109, rv1126, rk1808]
+```
+Usage: python3 convert.py <onnx_model_path> <dataset_path> <platform> [dtype(optional)] [output_rknn_path(optional)]
+          platform choose from [rk3562, rk3566, rk3568, rk3576, rk3588, rv1103, rv1106, rv1126b, rv1109, rv1126, rk1808]
+          dtype choose from [i8, fp] for [rk3562, rk3566, rk3568, rk3576, rk3588, rv1103, rv1106, rv1126b]
+          dtype choose from [u8, fp] for [rv1109, rv1126, rk1808]
+```
 
-The `dataset_path` refers to a file containing a list of images to be used for calibration. We can use `coco_subset_20.txt` for now. This contains a subset of COCO images, making it appropriate for this task.
+The `<dataset_path>` refers to a file containing a list of images to be used for calibration. We can use `coco_subset_20.txt` for now. This contains a subset of COCO images, making it appropriate for this task.
 
 Convert the model by running the following:
 ```
@@ -586,7 +591,7 @@ Results saved to yolov5/runs/train/exp2
 
 This is much more compact than earlier, because there are only two classes to evaluate.
 
-### Evaluation
+## Evaluation
 
 To evaluate a detector trained on YOLOv5 we want to measure how well the predicted bounding boxes align with the annotated ground truth objects. The most common family of metrics are based on mean Average Precision (mAP). There are two variations of this that we're particularly interested in: **mAP@0.5** (often written as `mAP50`) and **mAP@0.5:0.95** (often written as `mAP50-95`).
 
@@ -609,7 +614,23 @@ Together with mAP, these metrics help determine whether you should gather more d
 
 ### Interpretation
 
-TODO: Discuss why the results for Apples and Oranges aren't great.
+The `mAP50` and `mAP50-95` scores reported at the end of training give us a snapshot of how well the detector generalises to unseen data. For the Apples vs Oranges dataset the `mAP50` values are relatively low (close to 0.5), which suggests that the model will struggle to perform well on unseen data.
+
+There are many reasons this can occur. The most likely in this case are insufficient training data, poor labels, or lack of training time.
+
+### Possible Improvements
+
+Let's see if we can improve the results by training for longer...
+
+python yolov5/train.py \
+  --img 640 \
+  --batch 16 \
+  --epochs 100 \
+  --data datasets/apples-oranges.yaml
+
+TODO: Check improvements
+
+TODO: Inspect the data
 
 ## Deployment
 
