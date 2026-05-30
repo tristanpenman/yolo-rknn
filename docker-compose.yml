@@ -1,8 +1,9 @@
 services:
   yolov5-rknn:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: /bibn/bash
+    build: .
+    environment:
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}
+    shm_size: '8gb'
     volumes:
       - .:/workspace

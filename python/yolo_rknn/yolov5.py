@@ -10,9 +10,9 @@ import os
 import cv2
 import numpy as np
 
-from coco_utils import CocoTestHelper, coco_eval_with_json
-from onnx_executor import onnx_model_container
-from rknn_executor import RknnModelContainer
+from .coco_utils import CocoTestHelper, coco_eval_with_json
+from .onnx_executor import onnx_model_container
+from .rknn_executor import RknnModelContainer
 
 OBJ_THRESH = 0.25
 NMS_THRESH = 0.45

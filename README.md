@@ -88,10 +88,10 @@ In the case of YOLOv5, we also need to make a small change to the model graph, w
 
 Begin by cloning the repo and its submodules:
 
-```
+```bash
 git clone git@github.com:tristanpenman/yolov5-rknn.git
 cd yolov5-rknn
-git submodule update --init yolov5
+git submodule update --init thirdparty
 ```
 
 What you do next will depend on your operating system. If you are using macOS, you will need to use Docker as [described below](#docker-optional).
@@ -102,38 +102,66 @@ If you are using Linux or WSL, you should be able to proceed with [Direct Instal
 
 Install requirements using `pip`. Note that these instructions may depend on whether you're using pyenv or some other Python virtual environment:
 
-```
+```bash
 pip3 install -r requirements.txt
 ```
 
-This will install dependencies for the scripts in [scripts](scripts) and [yolov5](yolov5).
+This will install dependencies for the Python scripts in this repo, as well as the [yolov5](yolov5) submodule.
 
 ### Docker (optional)
 
-Build the Docker image:
+Alternatively, you can use Docker Compose:
 
-```
-docker build -t yolov5-rknn .
+```bash
+docker compose run --build --rm yolov5-rknn
 ```
 
-Once the image has been built, you can start a container using:
+To ensure that files are created with the correct permissions and ownership, use the `compose.sh` helper script:
 
+```bash
+./scripts/compose.sh
 ```
-docker run -it --rm -v "$PWD:/workspace" yolov5-rknn
-```
+
+All commands below can be run from within the container.
+
 
 ### Models (optional)
 
 You will also need to download any pretrained models that you want to use. These live in [models](models). This repo includes `yolov5n.onnx` for convenience, so you only need to do this if you want to adapt another pretrained model.
 
+### Development
+
+To run linting locally, use the Makefile target below:
+
+```bash
+make lint
+```
+<!--
+To run a repeatable evaluation and export metrics + plots:
+
+```bash
+python -m yolo_rknn.evaluate \
+  --weights yolov5/runs/train/exp3/weights/best.pt \
+  --data datasets/apples-oranges.yaml \
+  --name apples-oranges-eval \
+  --export-dir reports/evaluation/apples-oranges
+```
+
+This writes evaluation artifacts to `reports/evaluation/...`, including:
+
+* `metrics.json` (precision, recall, mAP50, mAP50-95, fitness)
+* `results.csv`
+* Plot outputs copied from YOLOv5 validation (e.g. PR curve, confusion matrix) -->
+
 ## Conversion
 
-The model conversion process is implemented in Python. The code for this lives in the [scripts](scripts) directory. This includes scripts for converting the model on a Linux PC, as well as code for performing inference on a Rockchip device (e.g. RK3588). Inference can also be performed on a desktop CPU or GPU using ONNX.
+The model conversion process is implemented in Python. The code for this lives in the [yolo_rknn](python/yolo_rknn) module. This includes code for converting the model on a Linux PC, as well as code for performing inference on a Rockchip device (e.g. RK3588). Inference can also be performed on a desktop CPU or GPU using ONNX.
 
 ### Scripts
 
 The complete list of scripts is as follows:
 
+* `annotations.py`
 * `coco_utils.py` - Code for working with the [COCO dataset](https://cocodataset.org).
 * `convert.py` - Main conversion script. Uses RKNN-Toolkit2 to handle model conversion.
 * `onnx_executor.py` - Classes that implement inference for arbitrary devices, as supported by [ONNX Runtime](https://github.com/microsoft/onnxruntime).
@@ -142,7 +170,7 @@ The complete list of scripts is as follows:
 
 ### RKNN Model Zoo
 
-These scripts are based on the `yolov5` example from [RKNN Model Zoo](https://github.com/airockchip/rknn_model_zoo). RKNN Model Zoo is a collection of examples that implement popular models using [RKNN Toolkit2](https://github.com/airockchip/rknn-toolkit2).
+These scripts are based on the [yolov5](https://github.com/airockchip/rknn_model_zoo/tree/main/examples/yolov5) example from Rockchip's [RKNN Model Zoo](https://github.com/airockchip/rknn_model_zoo).
 
 These have been tidied up and simplified for inclusion here.
 
@@ -150,10 +178,10 @@ These have been tidied up and simplified for inclusion here.
 
 We'll begin by converting and quantising a pretrained ONNX model to RKNN format. The relevant calibration dataset (`coco_subset_20`) and source model (`yolov5n.onnx`) have been included for convenience.
 
-The conversion script (`convert.py`) takes the follow command line arguments:
+The conversion script takes the follow command line arguments:
 
 ```
-Usage: python3 convert.py <onnx_model_path> <dataset_path> <platform> [dtype(optional)] [output_rknn_path(optional)]
+Usage: python -m yolo_rknn.convert <onnx_model_path> <dataset_path> <platform> [dtype(optional)] [output_rknn_path(optional)]
           platform choose from [rk3562, rk3566, rk3568, rk3576, rk3588, rv1103, rv1106, rv1126b, rv1109, rv1126, rk1808]
           dtype choose from [i8, fp] for [rk3562, rk3566, rk3568, rk3576, rk3588, rv1103, rv1106, rv1126b]
           dtype choose from [u8, fp] for [rv1109, rv1126, rk1808]
@@ -163,10 +191,10 @@ The `<dataset_path>` refers to a file containing a list of images to be used for
 
 Convert the model by running the following:
 
-```
-python3 scripts/convert.py \
+```bash
+python -m yolo_rknn.convert \
     models/yolov5n.onnx \
-    coco_subset_20.txt \
+    example/coco_subset_20.txt \
     rk3588
 ```
 
@@ -277,7 +305,7 @@ At the top level, there is also a `firearms.yaml` file that corresponds to the `
 
 The YAML file for a dataset contains paths to the training data, and a mapping from class IDs to class names:
 
-```
+```yaml
 path: ../datasets/firearms
 
 train: images/train
@@ -297,7 +325,9 @@ Note: Due to the layout of this repo, the main `path:` is relative to the `yolov
 Lets build our own dataset. Begin by downloading the images and annotations for an "Apples and Oranges" dataset, using `OIDv6_Toolkit`:
 
 ```bash
-python OIDv6_ToolKit/main.py downloader --classes Apple Orange --type_csv all
+python OIDv6_ToolKit/main.py downloader \
+  --classes Apple Orange \
+  --type_csv all
 ```
 
 This will prompt you to download various missing files:
@@ -310,13 +340,14 @@ This will prompt you to download various missing files:
 Alternatively, the prompt can be suppressed by adding the `-y` option, ensuring that all files are downloaded automatically:
 
 ```bash
-python OIDv6_ToolKit/main.py downloader -y --classes Apple Orange --type_csv all
+python OIDv6_ToolKit/main.py downloader -y \
+  --classes Apple Orange \
+  --type_csv all
 ```
 
-The download may take a while, due to the number of images. The images will be downloaded to a directory called `OID`. Once the download is complete, we can inspect the structure of that directory using `tree`:
+The download may take a while, due to the number of images. The images will be downloaded to a directory called `OID`. We can inspect the structure of that directory using `tree -d OID`:
 
 ```
-$ tree -d OID
 .
 ├── Dataset
 │   ├── test
@@ -348,16 +379,15 @@ The OID dataset includes four CSV files, containing metadata that we need for tr
 * The `class-descriptions-boxable.csv` file is used when converting data into YOLO format. It provides a mapping between class label IDs and their human-readable names.
 * The other three files (`train-annotations-bbox.csv`, `test-annotations-bbox.csv` and `validation-annotations-bbox.csv`) contain bounding box annotations for the images in each subset.
 
-The next thing we need to do is convert the annotations to YOLO format. We have adapted the `convert_annotations.py` script from OIDv6_Toolkit, to make this more convenient:
+Our goal is to convert the annotations to YOLO format. We can use the `annotations` script (adapted from OIDv6_Toolkit) to handle this:
 
 ```bash
-./convert-annotations.py Apple Orange
+python -m yolo_rknn.annotations Apple Orange
 ```
 
 This will create a new annotation file alongside each of the original JPEG files, showing progress meters
 
 ```
-% ./convert-annotations.py Apple Orange
 Currently in subdirectory: test
 Converting annotations for class:  Apple
 100%|█████████████████████████████████████████████████████| 144/144 [00:01<00:00, 109.78it/s]
@@ -378,7 +408,7 @@ Converting annotations for class:  Orange
 Now we can move these into the datasets directory using the `prepare-dataset.sh` script:
 
 ```bash
-./prepare-dataset.sh apples-oranges Apple Orange
+./scripts/prepare-dataset.sh apples-oranges Apple Orange
 ```
 
 The arguments are simply a dataset name (`apples-oranges`), then a list of the classes to be included (`Apple`, `Orange`).
@@ -386,7 +416,6 @@ The arguments are simply a dataset name (`apples-oranges`), then a list of the c
 This script will show progress while restructuring the data:
 
 ```
-% ./prepare-dataset.sh apples-oranges Apple Orange
 Preparing dataset directory: datasets/apples-oranges
 Moving annotations...
 Moving images and labels...
@@ -415,12 +444,11 @@ Writing yaml file...
 Done!
 ```
 
-The final dataset will be placed in `datasets/apples-oranges`. It will also create a YAML file (`datasets/apples-oranges.yaml`) that follows the same YAML file format described above.
+The final dataset will be placed in `datasets/apples-oranges`. The dataset has a corresponding YAML file `datasets/apples-oranges.yaml` that follows the same YAML file format described above.
 
-We can inspect the final directory layout using `tree`:
+We can inspect the final directory layout using `tree -d datasets`:
 
 ```
-% tree -d datasets
 datasets
 └── apples-oranges
     ├── annotations
@@ -453,17 +481,12 @@ The next few steps will tackle this at a high level. For more detail, the Ultral
 
 The Ultralytics `yolov5` repo has been included as a submodule. Its Python dependencies are included in the main `requirements.txt` file, so they should be installed already if you followed the [Prerequisites](#prerequisites) section.
 
-If in doubt, you can re-run `pip` at the top-level of this repo:
-```
-pip install -r requirements.txt
-```
-
 ### COCO128
 
 By default, Ultralytics YOLOv5 will use a subset of COCO (specifically, COCO128) to train the model. Training with COCO128 can be started simply by running `train.py`:
 
-```
-python3 yolov5/train.py
+```bash
+python yolov5/train.py
 ```
 
 **Note**: This will automatically download the COCO128 dataset to the [datasets](./datasets) directory (relative to the current directory when the script is executed).
@@ -558,7 +581,7 @@ Note also that the path includes `exp1`, which is the current 'experiment' numbe
 
 We can easily adapt this for other datasets, such as those that we prepared earlier (e.g. Apples and Oranges).
 
-```
+```bash
 python yolov5/train.py \
   --img 640 \
   --batch 16 \
@@ -627,11 +650,15 @@ There are many reasons this can occur. The most likely in this case are insuffic
 
 Let's see if we can improve the results by training for longer...
 
-python yolov5/train.py \
+```bash
+python yolov5/train.py
   --img 640 \
   --batch 16 \
   --epochs 100 \
   --data datasets/apples-oranges.yaml
+```
+
+Here are the results:
 
 ```
 Validating yolov5/runs/train/exp3/weights/best.pt...
@@ -646,8 +673,6 @@ Results saved to yolov5/runs/train/exp3
 
 Well that didn't help. Despite running for 100 epochs, we saw marginal improvement for Oranges, and slight dip in Apples, and the overall mAP50 score is almost exactly the same.
 
-TODO: Inspect the data
-
 ## Deployment
 
 Once satisfied with the results, we can deploy the model to our Edge2 device. But in order to do this, we must convert the fine-tuned model to RKNN format, following the same steps covered in the [Conversion](#conversion) section above.
@@ -656,8 +681,8 @@ Once satisfied with the results, we can deploy the model to our Edge2 device. Bu
 
 The first step is to convert the model to ONNX format:
 
-```
-python yolov5/export.py \
+```bash
+python yolov5/export.py
   --data datasets/apples-oranges.yaml \
   --include onnx \
   --weights yolov5/runs/train/exp3/weights/best.pt \
@@ -739,7 +764,7 @@ $ head apples-oranges-calib.txt
 We're finally ready to run the RKNN `convert.py` script using the new calibration dataset:
 
 ```bash
-python3 scripts/convert.py \
+python3 -m yolo_rknn.convert \
   yolov5/runs/train/exp3/weights/best.onnx \
   apples-oranges-calib.txt \
   rk3588
