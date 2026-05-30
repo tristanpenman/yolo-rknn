@@ -12,32 +12,28 @@ After training, the custom model will be stored in PyTorch (`.pt`) format. We th
 ### Contents
 
 * [Background](#background)
-  * [Transfer Learning](#transfer-learning)
-  * [Quantization](#quantization)
-  * [Scaling](#scaling)
 * [Prerequisites](#prerequisites)
   * [Direct Installation](#direct-installation)
   * [Direct Installation (GPU)](#direct-installation-gpu)
-  * [Docker (alternative)](#docker-alternative)
+  * [Docker (optional)](#docker-optional)
   * [Docker (GPU)](#docker-gpu)
   * [Models (optional)](#models-optional)
+  * [Development](#development)
 * [Conversion](#conversion)
   * [Scripts](#scripts)
-  * [RKNN Model Zoo](#rknn-model-zoo)
   * [ONNX to RKNN](#onnx-to-rknn)
   * [Verification](#verification)
 * [Custom Dataset](#custom-dataset)
   * [YOLO Annotation Format](#yolo-annotation-format)
-  * [Config File](#config-file)
+  * [Directory Structure](#directory-structure)
+  * [YAML File](#yaml-file)
   * [Apples and Oranges](#apples-and-oranges)
   * [Converting Annotations](#converting-annotations)
 * [Ultralytics YOLOv5](#ultralytics-yolov5)
-  * [Requirements](#Requirements)
+  * [Requirements](#requirements)
   * [COCO128](#coco128)
   * [Training](#training)
 * [Evaluation](#evaluation)
-  * [Intersection over Union](#intersection-over-union)
-  * [Interpretation](#interpretation)
   * [Possible Improvements](#possible-improvements)
 * [Deployment](#deployment)
   * [ONNX Format](#onnx-format)
@@ -47,52 +43,15 @@ After training, the custom model will be stored in PyTorch (`.pt`) format. We th
 
 ## Background
 
-Before we begin, it's important to understand the problem that we're trying to solve. There are many problems in computer vision, and these can overlap in various ways.
-
-The image below shows several examples:
-
-* **Labelling**: In the top-left, the image is being labelled (or annotated) with the kinds of objects identified.
-* **Segmentation**: In the bottom left and right, those objects have been cut out of the image using _Image Segmentation_.
-* **Detection**: And in the top-right, we can see bounding boxes drawn around those same objects. This is commonly known as _Object Detection_.
-
-![COCO Segmentation](doc/coco-segmentation.png)
-
-The focus of this exercise is to train an Object Detection model.
-
-### Transfer Learning
-
-Transfer Learning refers to the practice of adapting a pretrained model (typically trained on a large computer vision dataset such as ImageNet or COCO) for a different but related task.
-
-The two main approaches to Transfer Learning are:
-
-* **Feature Extraction**. We freeze the pretrained layers and train a new classifier (or head) for a new task. Freezing a layer means that its weights won't change.
-* **Fine-Tuning**. We unfreeze some (or all) of the pretrained layers, allowing the weights to change. Therefore, existing layers will also adapt to the new custom dataset.
-
-There are cases where we might use one approach, or the other.
-
-Feature extraction is well suited to cases where the target task is similar to the original task, or when the target domain is a subset of the original domain.
-
-Fine-Tuning is more effective when the target dataset is large enough or differs significantly from the original domain. In practice, these two approaches are often combined: training begins with pure Feature Extraction, using frozen pretrained weights. Once the model achieves a reasonable level of performance, the pretrained weights are unfrozen, allowing them to adapt to the new task.
-
-### Quantization
-
-One of our goals in converting model weights to RKNN format is to reduce memory overhead through quantization. For example, a model trained with 32-bit floating point (FP32) weights can be quantised to 16-bit floating point (FP16), or even 8-bit integers (INT8), significantly reducing model size and improving inference efficiency on Edge devices.
-
-This process is well described in [A Visual Guide to Quantization](https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-quantization).
-
-### Scaling
-
-Quantization will cause model weights and activations to be scaling, and possibly shifted to a new zero point. These scale and zero point values are chosen (or calibrated) based on a subset of data.
-
-In the case of YOLOv5, we also need to make a small change to the model graph, whereby a post-processing step is moved outside the main model. This is to address stability issues introduced by quantization.
+For a short introduction to object detection, transfer learning, quantization, and RKNN-specific graph changes, see [Background](doc/background.md).
 
 ## Prerequisites
 
 Begin by cloning the repo and its submodules:
 
 ```bash
-git clone git@github.com:tristanpenman/yolov5-rknn.git
-cd yolov5-rknn
+git clone git@github.com:tristanpenman/yolo-rknn.git
+cd yolo-rknn
 git submodule update --init
 ```
 
@@ -178,7 +137,7 @@ The complete list of scripts is as follows:
 * `coco_utils.py` - Code for working with the [COCO dataset](https://cocodataset.org).
 * `convert.py` - Main conversion script. Uses RKNN Toolkit to handle model conversion.
 * `onnx_executor.py` - Classes that implement inference for arbitrary devices, as supported by [ONNX Runtime](https://github.com/microsoft/onnxruntime).
-* `rknn_executor.py` - Classes that implement inference on Rockchip devices. Uses to RKNN Toolkit to perform inference.
+* `rknn_executor.py` - Classes that implement inference on Rockchip devices. Uses RKNN Toolkit to perform inference.
 * `yolov5.py` - Wrapper script for performing inference. Relies on `ONNXExecutor` or `RKNNExecutor` to do the actual work.
 
 Note: These scripts are based on the [yolov5](https://github.com/airockchip/rknn_model_zoo/tree/main/examples/yolov5) example from Rockchip's [RKNN Model Zoo](https://github.com/airockchip/rknn_model_zoo).
@@ -187,7 +146,7 @@ Note: These scripts are based on the [yolov5](https://github.com/airockchip/rknn
 
 We'll begin by converting and quantising a pretrained ONNX model to RKNN format. The relevant calibration dataset (`coco_subset_20`) and source model (`yolov5n.onnx`) have been included for convenience.
 
-The conversion script takes the follow command line arguments:
+The conversion script takes the following command line arguments:
 
 ```
 Usage: python -m yolo_rknn.convert <onnx_model_path> <dataset_path> <platform> [dtype(optional)] [output_rknn_path(optional)]
@@ -306,7 +265,7 @@ The dataset must follow a particular directory structure too:
     └── firearms.yaml
 ```
 
-This example shows a dataset called `firearms`. Within the `firearms` directory, there are subdirectories for `images` and `labels`. These are, in turn, divided into the subdirectories `train`, `val`, and `test`. These are the training, validation and test splits of the data, respectively.
+This example shows a dataset called `firearms`. Within the `firearms` directory, there are subdirectories for `images` and `labels`. These are, in turn, divided into the subdirectories `train`, `validation`, and `test`. These are the training, validation and test splits of the data, respectively.
 
 At the top level, there is also a `firearms.yaml` file that corresponds to the `firearms` directory.
 
@@ -319,7 +278,7 @@ path: ../datasets/firearms
 
 train: images/train
 test: images/test
-val: images/val
+val: images/validation
 
 names:
   0: Rifle
@@ -331,7 +290,7 @@ Note: Due to the layout of this repo, the main `path:` is relative to the `yolov
 
 ### Apples and Oranges
 
-Lets build our own dataset. Begin by downloading the images and annotations for an "Apples and Oranges" dataset, using `OIDv6_Toolkit`:
+Let's build our own dataset. Begin by downloading the images and annotations for an "Apples and Oranges" dataset, using `OIDv6_ToolKit`:
 
 ```bash
 python OIDv6_ToolKit/main.py downloader \
@@ -379,7 +338,7 @@ The download may take a while, due to the number of images. The images will be d
 8 directories
 ```
 
-This isn't quite what we need for YOLO, so lets proceed to converting annotations and preparing the dataset.
+This isn't quite what we need for YOLO, so let's proceed to converting annotations and preparing the dataset.
 
 ### Converting Annotations
 
@@ -388,13 +347,13 @@ The OID dataset includes four CSV files, containing metadata that we need for tr
 * The `class-descriptions-boxable.csv` file is used when converting data into YOLO format. It provides a mapping between class label IDs and their human-readable names.
 * The other three files (`train-annotations-bbox.csv`, `test-annotations-bbox.csv` and `validation-annotations-bbox.csv`) contain bounding box annotations for the images in each subset.
 
-Our goal is to convert the annotations to YOLO format. We can use the `annotations` script (adapted from OIDv6_Toolkit) to handle this:
+Our goal is to convert the annotations to YOLO format. We can use the `annotations` script (adapted from `OIDv6_ToolKit`) to handle this:
 
 ```bash
 python -m yolo_rknn.annotations Apple Orange
 ```
 
-This will create a new annotation file alongside each of the original JPEG files, showing progress meters
+This will create a new annotation file alongside each of the original JPEG files, showing progress meters:
 
 ```
 Currently in subdirectory: test
@@ -473,7 +432,7 @@ datasets
 11 directories
 ```
 
-This looks just the `firearms` dataset we were using as a reference, and also includes an `annotations` directory. This contains the annotation CSV files we downloaded earlier:
+This looks just like the `firearms` dataset we were using as a reference, and also includes an `annotations` directory. This contains the annotation CSV files we downloaded earlier:
 
 * `class-descriptions-boxable.csv`
 * `train-annotations-bbox.csv`
@@ -506,7 +465,7 @@ This will generate A LOT of output from the training process. But what we care a
 Validating yolov5/runs/train/exp1/weights/best.pt...
 Fusing layers...
 Model summary: 157 layers, 7225885 parameters, 0 gradients, 16.4 GFLOPs
-                 Class     Images  Instances          P          R      mAP5    mAP50-95
+                 Class     Images  Instances          P          R      mAP50   mAP50-95
                    all        128        929      0.921      0.906      0.963      0.784
                 person        128        254      0.989      0.878      0.966      0.776
                bicycle        128          6      0.988          1      0.995      0.688
@@ -582,7 +541,7 @@ Model summary: 157 layers, 7225885 parameters, 0 gradients, 16.4 GFLOPs
 Results saved to yolov5/runs/train/exp1
 ```
 
-The key detail we need to extract from this is `yolov5/runs/train/exp1/weights/best.pt`, which is the path the weights at the end of training. These are stored in PyTorch format, hence the `.pt` extension.
+The key detail we need to extract from this is `yolov5/runs/train/exp1/weights/best.pt`, which is the path to the weights at the end of training. These are stored in PyTorch format, hence the `.pt` extension.
 
 Note also that the path includes `exp1`, which is the current 'experiment' number. This will be incremented each time you run `train.py`.
 
@@ -611,7 +570,7 @@ This can be read as two pairs of rows. The first row of each pair contains attri
 
 Some of the most interesting values here are the box loss, object loss and class loss scores. See the YOLO documentation to understand how these values should be interpreted.
 
-We can also see the mAP scores for each iteration - these are described in the [Evaluation](#evaluation) section below.
+We can also see the mAP scores for each iteration. These are described in [Evaluation](doc/evaluation.md).
 
 Once training is complete, you'll see the final scores:
 
@@ -630,37 +589,18 @@ This is much more compact than earlier, because there are only two classes to ev
 
 ## Evaluation
 
-To evaluate a detector trained on YOLOv5 we want to measure how well the predicted bounding boxes align with the annotated ground truth objects. The most common family of metrics are based on mean Average Precision (mAP). There are two variations of this that we're particularly interested in: **mAP@0.5** (often written as `mAP50`) and **mAP@0.5:0.95** (often written as `mAP50-95`).
+To evaluate a YOLOv5 detector we want to measure how well the predicted bounding boxes align with the annotated ground truth objects. The most common family of metrics are based on mean Average Precision (mAP).
 
-Each score captures the average precision of the detector over all classes, but they differ in the Intersection over Union (IoU) thresholds that must be satisfied for a prediction to count as a true positive:
+There are two variations of this that we're particularly interested in: **mAP@0.5** (often written as `mAP50`) and **mAP@0.5:0.95** (often written as `mAP50-95`). These both use _Insection over Union_ to measure how many predictions count as true positives.
 
-* `map50` requires the predicted box to overlap the ground truth with an IoU of at least 0.50
-* `map50-95` averages the results across ten IoU thresholds between 0.50 and 0.95 in increments of 0.05
+For more detail on mAP, Intersection over Union, and how to interpret the Apples vs Oranges results, see [Evaluation](doc/evaluation.md).
 
-Together, these values provide a balanced view of recall / precision trade-offs and of how accurately the detector can localise objects. The intuition behind IoU is illustrated below.
+### Training Time
 
-### Intersection over Union
-
-IoU is calculated as the ratio of the intersection area between a predicted box and a ground-truth box, to the area of their union. A perfect overlap yields an IoU of 1.0, whereas no overlap produces an IoU of 0.0. Because IoU captures localisation quality, increasing the IoU threshold forces the detector to align boxes more precisely in order to maintain high precision scores.
-
-![Intersection over Union](doc/intersection-over-union.png)
-
-In addition to mAP, it is useful to inspect class-wise _precision_ and _recall_. Precision highlights how often predicted boxes are correct, recall reflects the fraction of ground-truth objects that were detected. We can also inspect the [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix), which reveals systematic mis-classifications between classes.
-
-Together with mAP, these metrics help determine whether you should gather more data, adjust augmentation strategies, or refine anchor settings before deploying the model.
-
-### Interpretation
-
-The `mAP50` and `mAP50-95` scores reported at the end of training give us a snapshot of how well the detector generalises to unseen data. For the Apples vs Oranges dataset the `mAP50` values are relatively low (close to 0.5), which suggests that the model will struggle to perform well on unseen data.
-
-There are many reasons this can occur. The most likely in this case are insufficient training data, poor labels, or lack of training time.
-
-### Possible Improvements
-
-Let's see if we can improve the results by training for longer...
+Let's see if we can improve the results by training for longer:
 
 ```bash
-python yolov5/train.py
+python yolov5/train.py \
   --img 640 \
   --batch 16 \
   --epochs 100 \
@@ -680,7 +620,7 @@ Model summary: 157 layers, 7015519 parameters, 0 gradients, 15.8 GFLOPs
 Results saved to yolov5/runs/train/exp3
 ```
 
-Well that didn't help. Despite running for 100 epochs, we saw marginal improvement for Oranges, and slight dip in Apples, and the overall mAP50 score is almost exactly the same.
+Well that didn't help. Despite running for 100 epochs, we saw marginal improvement for Oranges, a slight dip for Apples, and an overall mAP50 score that is almost exactly the same.
 
 ## Deployment
 
@@ -691,7 +631,7 @@ Once satisfied with the results, we can deploy the model to our Edge2 device. Bu
 The first step is to convert the model to ONNX format:
 
 ```bash
-python yolov5/export.py
+python yolov5/export.py \
   --data datasets/apples-oranges.yaml \
   --include onnx \
   --weights yolov5/runs/train/exp3/weights/best.pt \
@@ -703,25 +643,25 @@ python yolov5/export.py
 
 We use the `--data` option to specify the dataset we've used, which can be used to configure the number of outputs in the model. We provide the path to the latest model using `--weights`, and the image size using `--img`. Finally, we specify `--include onnx` to export to ONNX format.
 
-Once the export is complete, you can see that the model has been saved as `yolov5/runs/train/exp1/weights/best.onnx`. Output from the conversion process should look similar to this:
+Once the export is complete, you can see that the model has been saved as `yolov5/runs/train/exp3/weights/best.onnx`. Output from the conversion process should look similar to this:
 
 ```
 Fusing layers...
 Model summary: 157 layers, 7015519 parameters, 0 gradients, 15.8 GFLOPs
 
-PyTorch: starting from yolov5/runs/train/exp1/weights/best.pt with output shape
+PyTorch: starting from yolov5/runs/train/exp3/weights/best.pt with output shape
 (1, 25200, 7) (13.7 MB)
 
 ONNX: starting export with onnx 1.18.0...
-ONNX: export success ✅ 0.8s, saved as yolov5/runs/train/exp1/weights/best.onnx (27.2 MB)
+ONNX: export success ✅ 0.8s, saved as yolov5/runs/train/exp3/weights/best.onnx (27.2 MB)
 
 Export complete (1.1s)
-Results saved to /home/tristan/Workspace/yolov5-rknn/yolov5/runs/train/exp1/weights
-Detect:          python detect.py --weights yolov5/runs/train/exp1/weights/best.onnx
-Validate:        python val.py --weights yolov5/runs/train/exp1/weights/best.onnx
+Results saved to /home/tristan/Workspace/yolo-rknn/yolov5/runs/train/exp3/weights
+Detect:          python detect.py --weights yolov5/runs/train/exp3/weights/best.onnx
+Validate:        python val.py --weights yolov5/runs/train/exp3/weights/best.onnx
 PyTorch Hub:     model = torch.hub.load('ultralytics/yolov5',
                                         'custom',
-                                        'yolov5/runs/train/exp1/weights/best.onnx')
+                                        'yolov5/runs/train/exp3/weights/best.onnx')
 Visualize:       https://netron.app
 ```
 
@@ -729,7 +669,7 @@ Converting from ONNX to RKNN is a little more involved...
 
 ### Calibration
 
-To convert to RKNN format, we need to choose a subset of the training data to use for quantization and calibration. Recall that calibration will scale the weights and activations of the model, to fit a smaller or less precise data type. This doesn't require a lot of data - just enough to produce reasonable values scale factors and zero points.
+To convert to RKNN format, we need to choose a subset of the training data to use for quantization and calibration. Recall that calibration will scale the weights and activations of the model, to fit a smaller or less precise data type. This doesn't require a lot of data - just enough to produce reasonable scale factors and zero points.
 
 We can do this using just 10 examples.
 
@@ -739,7 +679,7 @@ What's the easiest way to copy 10 random files from a directory using standard L
 find /path/to/dir -type f | shuf -n 10 | xargs -I{} cp {} /destination/dir
 ```
 
-For example, from the top-level `yolov5-transfer-learning` directory:
+For example, from the top-level `yolo-rknn` directory:
 
 ```bash
 mkdir apples-oranges-calib
@@ -817,7 +757,7 @@ done
 This repo contains code derived from multiple projects, each released under a different license:
 
 * [yolov5](https://github.com/ultralytics/yolov5) - AGPL-3.0 License
-* [OIDv6_Toolkit](https://github.com/Bukkster/OIDv6_ToolKit) - GPL-3.0 License
+* [OIDv6_ToolKit](https://github.com/Bukkster/OIDv6_ToolKit) - GPL-3.0 License
 * [RKNN Toolkit2](https://github.com/rockchip-linux/rknn-toolkit2) - BSD 3-Clause "New" or "Revised" License
 
 It is your responsibility to adhere to the relevant license if adapting this code for use in your own projects.
