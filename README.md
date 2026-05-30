@@ -19,6 +19,7 @@ After training, the custom model will be stored in PyTorch (`.pt`) format. We th
   * [Direct Installation](#direct-installation)
   * [Direct Installation (GPU)](#direct-installation-gpu)
   * [Docker (alternative)](#docker-alternative)
+  * [Docker (GPU)](#docker-gpu)
   * [Models (optional)](#models-optional)
 * [Conversion](#conversion)
   * [Scripts](#scripts)
@@ -132,6 +133,24 @@ To ensure that files are created with the correct permissions and ownership, use
 ```
 
 All commands below can be run from within the container.
+
+### Docker (GPU)
+
+If your host has an NVIDIA GPU, you can run a GPU-accelerated container instead. This requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) to be installed and configured for Docker.
+
+GPU support is provided by a separate `yolov5-rknn-gpu` service in `docker-compose.yml`. This service builds with the CUDA-enabled dependencies from `python/requirements.gpu.txt`, and reserves all available GPUs via Docker Compose's device reservations.
+
+Use the `compose-gpu.sh` helper script, which mirrors `compose.sh` but targets the GPU service:
+
+```bash
+./scripts/compose-gpu.sh
+```
+
+You can verify that the GPU is visible from within the container:
+
+```bash
+python -c "import torch; print(torch.cuda.is_available())"
+```
 
 ### Models (optional)
 

@@ -19,7 +19,11 @@ WORKDIR /workspace
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-COPY python/requirements.txt /tmp/requirements.txt
+# Which requirements file to install. The GPU service overrides this with
+# python/requirements.gpu.txt (CUDA-enabled torch / onnxruntime-gpu).
+ARG REQUIREMENTS=python/requirements.txt
+
+COPY ${REQUIREMENTS} /tmp/requirements.txt
 
 RUN python -m venv "$VIRTUAL_ENV" \
     && python -m pip install --upgrade pip \
