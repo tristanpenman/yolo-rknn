@@ -9,18 +9,18 @@ After training, the custom model will be stored in PyTorch (`.pt`) format. We th
 >
 > These instructions refer to the [Khadas Edge2](https://www.khadas.com/edge2) specifically, but it should be relatively easy to adapt this to other Rockchip NPU devices.
 
+For a short introduction to object detection, transfer learning, quantization, and RKNN-specific graph changes, see [Background](doc/background.md).
+
 ### Contents
 
-* [Background](#background)
 * [Prerequisites](#prerequisites)
   * [Direct Installation](#direct-installation)
-  * [Direct Installation (GPU)](#direct-installation-gpu)
   * [Docker (optional)](#docker-optional)
   * [Docker (GPU)](#docker-gpu)
-  * [Models (optional)](#models-optional)
-  * [Development](#development)
+* [Project Layout](#project-layout)
+  * [Python Scripts](#python-scripts)
+  * [Models](#models)
 * [Conversion](#conversion)
-  * [Scripts](#scripts)
   * [ONNX to RKNN](#onnx-to-rknn)
   * [Verification](#verification)
 * [Custom Dataset](#custom-dataset)
@@ -34,16 +34,14 @@ After training, the custom model will be stored in PyTorch (`.pt`) format. We th
   * [COCO128](#coco128)
   * [Training](#training)
 * [Evaluation](#evaluation)
-  * [Possible Improvements](#possible-improvements)
+  * [Repeatable Evaluations](#repeatable-evaluations)
+  * [Training Time](#training-time)
 * [Deployment](#deployment)
   * [ONNX Format](#onnx-format)
   * [Calibration](#calibration)
   * [RKNN Format](#rknn-format)
+* [Contributing](#contributing)
 * [License](#license)
-
-## Background
-
-For a short introduction to object detection, transfer learning, quantization, and RKNN-specific graph changes, see [Background](doc/background.md).
 
 ## Prerequisites
 
@@ -61,15 +59,11 @@ If you are using Linux or WSL, you should be able to proceed with [Direct Instal
 
 ### Direct Installation
 
-Install requirements using `pip`. Note that these instructions may depend on whether you're using pyenv or some other Python virtual environment:
+Install requirements using `pip`:
 
 ```bash
 pip install -r python/requirements.txt
 ```
-
-This will install dependencies for the Python scripts in this repo, as well as the [yolov5](yolov5) submodule.
-
-### Direct Installation (GPU)
 
 If you have a GPU, you can install dependencies with GPU acceleration enabled:
 
@@ -111,27 +105,13 @@ You can verify that the GPU is visible from within the container:
 python -c "import torch; print(torch.cuda.is_available())"
 ```
 
-### Models (optional)
+## Project Layout
 
-You will also need to download any pretrained models that you want to use. These should be placed in [models](models).
+Most of the code for this project lives in the [yolo_rknn](python/yolo_rknn) module. This includes code for converting the model on a Linux PC, as well as code for performing inference on a Rockchip device (e.g. RK3588). Inference can also be performed on a desktop CPU or GPU using ONNX.
 
-This repo includes `yolov5n.onnx` for convenience, so you only need to do this if you want to fine-tune another pretrained model.
+### Python Scripts
 
-### Development
-
-To run linting locally, use the Makefile target below:
-
-```bash
-make lint
-```
-
-## Conversion
-
-The model conversion process is implemented in Python. The code for this lives in the [yolo_rknn](python/yolo_rknn) module. This includes code for converting the model on a Linux PC, as well as code for performing inference on a Rockchip device (e.g. RK3588). Inference can also be performed on a desktop CPU or GPU using ONNX.
-
-### Scripts
-
-The complete list of scripts is as follows:
+The [yolo_rknn](python/yolo_rknn) module provides the following Python scripts:
 
 * `annotations.py` - Convert annotations from OID format to YOLO format.
 * `coco_utils.py` - Code for working with the [COCO dataset](https://cocodataset.org).
@@ -142,7 +122,13 @@ The complete list of scripts is as follows:
 
 Note: These scripts are based on the [yolov5](https://github.com/airockchip/rknn_model_zoo/tree/main/examples/yolov5) example from Rockchip's [RKNN Model Zoo](https://github.com/airockchip/rknn_model_zoo).
 
-### ONNX to RKNN
+### Models
+
+You will also need to download any pretrained models that you want to use. These should be placed in [models](models).
+
+This repo includes `yolov5n.onnx` for convenience, so you only need to do this if you want to fine-tune another pretrained model.
+
+## Conversion
 
 We'll begin by converting and quantising a pretrained ONNX model to RKNN format. The relevant calibration dataset (`coco_subset_20`) and source model (`yolov5n.onnx`) have been included for convenience.
 
@@ -595,6 +581,20 @@ There are two variations of this that we're particularly interested in: **mAP@0.
 
 For more detail on mAP, Intersection over Union, and how to interpret the Apples vs Oranges results, see [Evaluation](doc/evaluation.md).
 
+### Repeatable Evaluations
+
+To run a repeatable evaluation and export corresponding metrics and plots:
+
+```bash
+python -m yolo_rknn.evaluate \
+  --weights yolov5/runs/train/exp3/weights/best.pt \
+  --data datasets/apples-oranges.yaml \
+  --name apples-oranges-eval \
+  --export-dir reports/evaluation/apples-oranges
+```
+
+This writes evaluation artifacts to `reports/evaluation`.
+
 ### Training Time
 
 Let's see if we can improve the results by training for longer:
@@ -751,6 +751,12 @@ done
 --> Export rknn model
 done
 ```
+
+## Contributing
+
+Contributions are welcome. I will make an effort to review any bona fide contributions.
+
+You are also welcome to raise GitHub issues against this repo, however please note this is merely a hobby project. I cannot offer any guarantee that issues will be responded to in a timely fashion.
 
 ## License
 
