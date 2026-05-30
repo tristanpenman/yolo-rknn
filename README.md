@@ -1,4 +1,4 @@
-# YOLOv5 RKNN
+# YOLO RKNN
 
 This repo contains step-by-step instructions for using Transfer Learning to train a custom YOLOv5 Object Detector, starting from pretrained weights.
 
@@ -17,6 +17,7 @@ After training, the custom model will be stored in PyTorch (`.pt`) format. We th
   * [Scaling](#scaling)
 * [Prerequisites](#prerequisites)
   * [Direct Installation](#direct-installation)
+  * [Direct Installation (GPU)](#direct-installation-gpu)
   * [Docker (alternative)](#docker-alternative)
   * [Models (optional)](#models-optional)
 * [Conversion](#conversion)
@@ -53,7 +54,7 @@ The image below shows several examples:
 * **Segmentation**: In the bottom left and right, those objects have been cut out of the image using _Image Segmentation_.
 * **Detection**: And in the top-right, we can see bounding boxes drawn around those same objects. This is commonly known as _Object Detection_.
 
-![COCO Segmentation](coco-segmentation.png)
+![COCO Segmentation](doc/coco-segmentation.png)
 
 The focus of this exercise is to train an Object Detection model.
 
@@ -91,7 +92,7 @@ Begin by cloning the repo and its submodules:
 ```bash
 git clone git@github.com:tristanpenman/yolov5-rknn.git
 cd yolov5-rknn
-git submodule update --init thirdparty
+git submodule update --init
 ```
 
 What you do next will depend on your operating system. If you are using macOS, you will need to use Docker as [described below](#docker-optional).
@@ -103,14 +104,22 @@ If you are using Linux or WSL, you should be able to proceed with [Direct Instal
 Install requirements using `pip`. Note that these instructions may depend on whether you're using pyenv or some other Python virtual environment:
 
 ```bash
-pip3 install -r requirements.txt
+pip install -r python/requirements.txt
 ```
 
 This will install dependencies for the Python scripts in this repo, as well as the [yolov5](yolov5) submodule.
 
+### Direct Installation (GPU)
+
+If you have a GPU, you can install dependencies with GPU acceleration enabled:
+
+```bash
+pip install -r python/requirements.gpu.txt
+```
+
 ### Docker (optional)
 
-Alternatively, you can use Docker Compose:
+If you use macOS (or otherwise don't want to install dependencies in your host OS) you can use Docker Compose:
 
 ```bash
 docker compose run --build --rm yolov5-rknn
@@ -124,10 +133,11 @@ To ensure that files are created with the correct permissions and ownership, use
 
 All commands below can be run from within the container.
 
-
 ### Models (optional)
 
-You will also need to download any pretrained models that you want to use. These live in [models](models). This repo includes `yolov5n.onnx` for convenience, so you only need to do this if you want to adapt another pretrained model.
+You will also need to download any pretrained models that you want to use. These should be placed in [models](models).
+
+This repo includes `yolov5n.onnx` for convenience, so you only need to do this if you want to fine-tune another pretrained model.
 
 ### Development
 
@@ -136,22 +146,6 @@ To run linting locally, use the Makefile target below:
 ```bash
 make lint
 ```
-<!--
-To run a repeatable evaluation and export metrics + plots:
-
-```bash
-python -m yolo_rknn.evaluate \
-  --weights yolov5/runs/train/exp3/weights/best.pt \
-  --data datasets/apples-oranges.yaml \
-  --name apples-oranges-eval \
-  --export-dir reports/evaluation/apples-oranges
-```
-
-This writes evaluation artifacts to `reports/evaluation/...`, including:
-
-* `metrics.json` (precision, recall, mAP50, mAP50-95, fitness)
-* `results.csv`
-* Plot outputs copied from YOLOv5 validation (e.g. PR curve, confusion matrix) -->
 
 ## Conversion
 
@@ -161,18 +155,14 @@ The model conversion process is implemented in Python. The code for this lives i
 
 The complete list of scripts is as follows:
 
-* `annotations.py`
+* `annotations.py` - Convert annotations from OID format to YOLO format.
 * `coco_utils.py` - Code for working with the [COCO dataset](https://cocodataset.org).
-* `convert.py` - Main conversion script. Uses RKNN-Toolkit2 to handle model conversion.
+* `convert.py` - Main conversion script. Uses RKNN Toolkit to handle model conversion.
 * `onnx_executor.py` - Classes that implement inference for arbitrary devices, as supported by [ONNX Runtime](https://github.com/microsoft/onnxruntime).
-* `rknn_executor.py` - Classes that implement inference on Rockchip devices. Uses to RKNN-Toolkit2 to perform inference.
+* `rknn_executor.py` - Classes that implement inference on Rockchip devices. Uses to RKNN Toolkit to perform inference.
 * `yolov5.py` - Wrapper script for performing inference. Relies on `ONNXExecutor` or `RKNNExecutor` to do the actual work.
 
-### RKNN Model Zoo
-
-These scripts are based on the [yolov5](https://github.com/airockchip/rknn_model_zoo/tree/main/examples/yolov5) example from Rockchip's [RKNN Model Zoo](https://github.com/airockchip/rknn_model_zoo).
-
-These have been tidied up and simplified for inclusion here.
+Note: These scripts are based on the [yolov5](https://github.com/airockchip/rknn_model_zoo/tree/main/examples/yolov5) example from Rockchip's [RKNN Model Zoo](https://github.com/airockchip/rknn_model_zoo).
 
 ### ONNX to RKNN
 
@@ -634,7 +624,7 @@ Together, these values provide a balanced view of recall / precision trade-offs 
 
 IoU is calculated as the ratio of the intersection area between a predicted box and a ground-truth box, to the area of their union. A perfect overlap yields an IoU of 1.0, whereas no overlap produces an IoU of 0.0. Because IoU captures localisation quality, increasing the IoU threshold forces the detector to align boxes more precisely in order to maintain high precision scores.
 
-![Intersection over Union](intersection-over-union.png)
+![Intersection over Union](doc/intersection-over-union.png)
 
 In addition to mAP, it is useful to inspect class-wise _precision_ and _recall_. Precision highlights how often predicted boxes are correct, recall reflects the fraction of ground-truth objects that were detected. We can also inspect the [confusion matrix](https://en.wikipedia.org/wiki/Confusion_matrix), which reveals systematic mis-classifications between classes.
 
