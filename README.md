@@ -577,7 +577,7 @@ This is much more compact than earlier, because there are only two classes to ev
 
 To evaluate a YOLOv5 detector we want to measure how well the predicted bounding boxes align with the annotated ground truth objects. The most common family of metrics are based on mean Average Precision (mAP).
 
-There are two variations of this that we're particularly interested in: **mAP@0.5** (often written as `mAP50`) and **mAP@0.5:0.95** (often written as `mAP50-95`). These both use _Insection over Union_ to measure how many predictions count as true positives.
+There are two variations of this that we're particularly interested in: **mAP@0.5** (often written as `mAP50`) and **mAP@0.5:0.95** (often written as `mAP50-95`). These both use _Intersection over Union_ to measure how many predictions count as true positives.
 
 For more detail on mAP, Intersection over Union, and how to interpret the Apples vs Oranges results, see [Evaluation](doc/evaluation.md).
 
@@ -671,19 +671,19 @@ Converting from ONNX to RKNN is a little more involved...
 
 To convert to RKNN format, we need to choose a subset of the training data to use for quantization and calibration. Recall that calibration will scale the weights and activations of the model, to fit a smaller or less precise data type. This doesn't require a lot of data - just enough to produce reasonable scale factors and zero points.
 
-We can do this using just 10 examples.
+We can do this using just 10-20 examples.
 
-What's the easiest way to copy 10 random files from a directory using standard Linux/Unix command line tools? We can combine `find`, `shuf` and `xargs`:
+What's the easiest way to copy 20 random files from a directory using standard Linux/Unix command line tools? We can combine `find`, `shuf` and `xargs`:
 
 ```bash
-find /path/to/dir -type f | shuf -n 10 | xargs -I{} cp {} /destination/dir
+find /path/to/dir -type f | shuf -n 20 | xargs -I{} cp {} /destination/dir
 ```
 
 For example, from the top-level `yolo-rknn` directory:
 
 ```bash
 mkdir apples-oranges-calib
-find datasets/apples-oranges -type f -name '*.jpg' | shuf -n 100 | xargs -I{} cp {} apples-oranges-calib
+find datasets/apples-oranges -type f -name '*.jpg' | shuf -n 20 | xargs -I{} cp {} apples-oranges-calib
 ```
 
 Then we can create a list of relative paths to the images in that directory:
@@ -692,10 +692,9 @@ Then we can create a list of relative paths to the images in that directory:
 find apples-oranges-calib -type f -exec echo "./{}" \; > apples-oranges-calib.txt
 ```
 
-We should also check the output:
+We should also check the output using `head apples-oranges-calib.txt`:
 
 ```bash
-$ head apples-oranges-calib.txt
 ./apples-oranges-calib/69974d01b659acfe.jpg
 ./apples-oranges-calib/326cd1e8ed154d23.jpg
 ./apples-oranges-calib/6a7745c9f562a645.jpg
