@@ -112,12 +112,11 @@ Most of the code for this project lives in the [yolo_rknn](python/yolo_rknn) mod
 
 The [yolo_rknn](python/yolo_rknn) module provides the following Python scripts:
 
-* `annotations.py` - Convert annotations from OID format to YOLO format.
 * `coco_utils.py` - Code for working with the [COCO dataset](https://cocodataset.org).
 * `download.py` - Download Open Images examples and build a YOLOv5 dataset, including images, labels and a YAML file.
 * `convert.py` - Main conversion script. Uses RKNN Toolkit to handle model conversion.
-* `onnx_executor.py` - Classes that implement inference for arbitrary devices, as supported by [ONNX Runtime](https://github.com/microsoft/onnxruntime).
-* `rknn_executor.py` - Classes that implement inference on Rockchip devices. Uses RKNN Toolkit to perform inference.
+* `onnx_executor.py` - Classes that implement inference using [ONNX Runtime](https://github.com/microsoft/onnxruntime).
+* `rknn_executor.py` - Classes that implement inference on Rockchip devices using RKNN Toolkit.
 * `yolov5.py` - Wrapper script for performing inference. Relies on `ONNXExecutor` or `RKNNExecutor` to do the actual work.
 
 Note: These scripts are based on the [yolov5](https://github.com/airockchip/rknn_model_zoo/tree/main/examples/yolov5) example from Rockchip's [RKNN Model Zoo](https://github.com/airockchip/rknn_model_zoo).
