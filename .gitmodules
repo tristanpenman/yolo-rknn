@@ -1,7 +1,3 @@
 [submodule "yolov5"]
 	path = yolov5
 	url = https://github.com/ultralytics/yolov5
-[submodule "OIDv6_ToolKit"]
-	path = OIDv6_ToolKit
-	url = https://github.com/Bukkster/OIDv6_ToolKit
-	ignore = untracked

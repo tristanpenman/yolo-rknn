@@ -283,6 +283,9 @@ python -m yolo_rknn.download apples-oranges \
   --splits all
 ```
 
+> [!NOTE]
+> The download script is based on [OIDv6_ToolKit](https://github.com/Bukkster/OIDv6_ToolKit).
+
 The first positional argument is the dataset name (`apples-oranges`). The `--classes` option lists the Open Images class names to include, in YOLO class ID order. e.g. `Apple` becomes class `0` and `Orange` becomes class `1`. The `--splits all` option downloads the `train`, `validation` and `test` splits; by default only `train` is downloaded.
 
 The first time you run this, the script needs to download several Open Images metadata files:
