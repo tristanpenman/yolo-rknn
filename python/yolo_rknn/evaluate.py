@@ -1,7 +1,8 @@
 """Run repeatable YOLOv5 evaluation and export metrics/plots.
 
-This script wraps ``yolov5/val.py`` to make evaluation reproducible and to
-collect key outputs (metrics + plot images) in a single directory.
+This script wraps `yolov5/val.py` to make evaluation reproducible.
+
+Collects key outputs (metrics + plot images) in a single directory.
 """
 
 from __future__ import annotations

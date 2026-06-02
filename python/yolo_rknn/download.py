@@ -1,5 +1,10 @@
-#!/usr/bin/env python3
-"""Download Open Images examples and write YOLOv5 datasets."""
+"""Download Open Images examples and write YOLOv5 datasets.
+
+Adapted from the downloader tool in OIDv6_Toolkit:
+https://github.com/Bukkster/OIDv6_ToolKit
+
+Originally released under the GPL 3.0 license.
+"""
 
 from __future__ import annotations
 

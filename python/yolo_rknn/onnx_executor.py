@@ -1,8 +1,9 @@
-# -----------------------------------------------------------------------------
-# Adapted from RKNN Toolkit 2.
-#
-# Originally released under the BSD 3-Clause "New" or "Revised" License.
-# -----------------------------------------------------------------------------
+"""ONNX model container for YOLOv5.
+
+Adapted from RKNN Toolkit 2.
+
+Originally released under the BSD 3-Clause "New" or "Revised" License.
+"""
 
 import os
 

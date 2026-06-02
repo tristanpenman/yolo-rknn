@@ -1,8 +1,9 @@
-# -----------------------------------------------------------------------------
-# Adapted from RKNN Toolkit 2.
-#
-# Originally released under the BSD 3-Clause "New" or "Revised" License.
-# -----------------------------------------------------------------------------
+"""COCO dataset utilities for YOLOv5 evaluation.
+
+Adapted from RKNN Toolkit 2.
+
+Originally released under the BSD 3-Clause "New" or "Revised" License.
+"""
 
 import json
 from copy import copy

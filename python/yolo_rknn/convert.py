@@ -1,8 +1,9 @@
-# -----------------------------------------------------------------------------
-# Adapted from RKNN Toolkit 2.
-#
-# Originally released under the BSD 3-Clause "New" or "Revised" License.
-# -----------------------------------------------------------------------------
+"""Convert an ONNX model to RKNN format.
+
+Adapted from RKNN Toolkit 2.
+
+Originally released under the BSD 3-Clause "New" or "Revised" License.
+"""
 
 import sys
 

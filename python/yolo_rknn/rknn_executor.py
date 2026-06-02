@@ -1,8 +1,9 @@
-# -----------------------------------------------------------------------------
-# Adapted from RKNN Toolkit 2.
-#
-# Originally released under the BSD 3-Clause "New" or "Revised" License.
-# -----------------------------------------------------------------------------
+"""RKNN model container for YOLOv5.
+
+Adapted from RKNN Toolkit 2.
+
+Originally released under the BSD 3-Clause "New" or "Revised" License.
+"""
 
 from rknn.api import RKNN
 

@@ -1,14 +1,10 @@
-#!/usr/bin/env python3
-# pylint: disable=invalid-name
+"""Convert from OID annotations to YOLOv5 annotations.
 
-# -----------------------------------------------------------------------------
-# Convert from OID annotations to YOLOv5 annotations.
-#
-# Adapted from convert_annotations.py in OIDv6_Toolkit:
-# https://github.com/Bukkster/OIDv6_ToolKit/blob/18c74c48ba2c738f8d635e02b97942d923117b3a/convert_annotations.py
-#
-# This code was originally released under the GPL 3.0 license.
-# -----------------------------------------------------------------------------
+Adapted from convert_annotations.py in OIDv6_Toolkit:
+https://github.com/Bukkster/OIDv6_ToolKit
+
+Originally released under the GPL 3.0 license.
+"""
 
 import os
 import sys

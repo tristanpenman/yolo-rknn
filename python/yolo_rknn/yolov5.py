@@ -1,8 +1,9 @@
-# -----------------------------------------------------------------------------
-# Adapted from RKNN Toolkit 2.
-#
-# Originally released under the BSD 3-Clause "New" or "Revised" License.
-# -----------------------------------------------------------------------------
+"""YOLOv5 evaluation script.
+
+Adapted from RKNN Toolkit 2.
+
+Originally released under the BSD 3-Clause "New" or "Revised" License.
+"""
 
 import argparse
 import os
