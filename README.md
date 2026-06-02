@@ -283,7 +283,7 @@ python -m yolo_rknn.download apples-oranges \
   --splits all
 ```
 
-The first positional argument is the dataset name (`apples-oranges`). The `--classes` option lists the Open Images class names to include, in YOLO class ID order — so `Apple` becomes class `0` and `Orange` becomes class `1`. The `--splits all` option downloads the `train`, `validation` and `test` splits; by default only `train` is downloaded.
+The first positional argument is the dataset name (`apples-oranges`). The `--classes` option lists the Open Images class names to include, in YOLO class ID order. e.g. `Apple` becomes class `0` and `Orange` becomes class `1`. The `--splits all` option downloads the `train`, `validation` and `test` splits; by default only `train` is downloaded.
 
 The first time you run this, the script needs to download several Open Images metadata files:
 
@@ -300,7 +300,7 @@ python -m yolo_rknn.download apples-oranges --yes \
   --splits all
 ```
 
-The download may take a while, due to the number of images. Images are fetched concurrently — you can tune the number of parallel downloads with `--workers` (default 20), and cap the number of images per split with `--limit`.
+The download may take a while, due to the number of images. Images are fetched concurrently, and you can tune the number of parallel downloads with `--workers` (default 20). You can also cap the number of images per split with `--limit`, to reduce the overall download size.
 
 When the run finishes, a short summary is printed:
 

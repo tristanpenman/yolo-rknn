@@ -20,6 +20,7 @@ from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Iterable
 
 import requests
+from tqdm import tqdm
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -163,20 +164,33 @@ def ensure_metadata(csv_dir: Path, splits: Iterable[str], assume_yes: bool = Fal
         path = csv_dir / name
         if path.exists():
             continue
-        download_file(METADATA_URLS[name], path)
+        download_file(METADATA_URLS[name], path, show_progress=True)
 
 
-def download_file(url: str, destination: Path, timeout: int = 30) -> None:
+def download_file(
+    url: str, destination: Path, timeout: int = 30, show_progress: bool = False
+) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     with requests.get(url, stream=True, timeout=timeout) as response:
         response.raise_for_status()
+        total = int(response.headers.get("Content-Length", 0)) or None
+        progress = tqdm(
+            total=total,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            desc=destination.name,
+            disable=not show_progress,
+            leave=False,
+        )
         with NamedTemporaryFile(
             "wb", delete=False, dir=destination.parent, prefix=f".{destination.name}."
-        ) as temp_file:
+        ) as temp_file, progress:
             temp_path = Path(temp_file.name)
             for chunk in response.iter_content(chunk_size=1024 * 1024):
                 if chunk:
                     temp_file.write(chunk)
+                    progress.update(len(chunk))
     temp_path.replace(destination)
 
 
@@ -275,12 +289,21 @@ def download_images(
     image_ids: Iterable[str], split: str, images_dir: Path, workers: int
 ) -> list[DownloadResult]:
     images_dir.mkdir(parents=True, exist_ok=True)
+    image_ids = list(image_ids)
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = [
             executor.submit(download_one_image, image_id, split, images_dir)
             for image_id in image_ids
         ]
-        return [future.result() for future in as_completed(futures)]
+        return [
+            future.result()
+            for future in tqdm(
+                as_completed(futures),
+                total=len(futures),
+                desc=f"Images ({split})",
+                unit="img",
+            )
+        ]
 
 
 def remove_failed_labels(results: Iterable[DownloadResult], labels_dir: Path) -> None:
