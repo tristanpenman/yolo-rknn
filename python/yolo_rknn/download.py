@@ -17,13 +17,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, Iterable
+from typing import Iterable
 
+import pandas as pd
 import requests
 from tqdm import tqdm
-
-if TYPE_CHECKING:
-    import pandas as pd
 
 
 SPLITS = ("train", "validation", "test")
@@ -183,9 +181,13 @@ def download_file(
             disable=not show_progress,
             leave=False,
         )
-        with NamedTemporaryFile(
-            "wb", delete=False, dir=destination.parent, prefix=f".{destination.name}."
-        ) as temp_file, progress:
+        temp_file_cm = NamedTemporaryFile(
+            "wb",
+            delete=False,
+            dir=destination.parent,
+            prefix=f".{destination.name}.",
+        )
+        with temp_file_cm as (temp_file, progress):
             temp_path = Path(temp_file.name)
             for chunk in response.iter_content(chunk_size=1024 * 1024):
                 if chunk:
@@ -226,8 +228,8 @@ def resolve_class_codes(class_map: dict[str, str], classes: list[str]) -> dict[s
 
 
 def select_annotations(
-    annotations: "pd.DataFrame", class_codes: Iterable[str], limit: int | None = None
-) -> tuple["pd.DataFrame", list[str]]:
+    annotations: pd.DataFrame, class_codes: Iterable[str], limit: int | None = None
+) -> tuple[pd.DataFrame, list[str]]:
     selected = annotations[annotations["LabelName"].isin(set(class_codes))].copy()
     if selected.empty:
         return selected, []
@@ -240,7 +242,7 @@ def select_annotations(
 
 
 def write_yolo_labels(
-    annotations: "pd.DataFrame", class_ids: dict[str, int], labels_dir: Path
+    annotations: pd.DataFrame, class_ids: dict[str, int], labels_dir: Path
 ) -> int:
     labels_dir.mkdir(parents=True, exist_ok=True)
     written = 0
@@ -358,14 +360,7 @@ def write_error_report(dataset_dir: Path, failures: list[DownloadResult]) -> Pat
     return report_path
 
 
-def read_annotations_csv(path: Path) -> "pd.DataFrame":
-    try:
-        import pandas as pd
-    except ImportError as exc:
-        raise RuntimeError(
-            "pandas is required to read Open Images annotation CSV files. "
-            "Install dependencies with: pip install -r python/requirements.txt"
-        ) from exc
+def read_annotations_csv(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, dtype={"ImageID": str, "LabelName": str})
 
 
