@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
 def run_eval(args: argparse.Namespace) -> Path:
     cmd: List[str] = [
         "python3",
-        "thirdparty/yolov5/val.py",
+        "yolov5/val.py",
         "--weights",
         args.weights,
         "--data",

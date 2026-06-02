@@ -115,9 +115,10 @@ The [yolo_rknn](python/yolo_rknn) module provides the following Python scripts:
 * `coco_utils.py` - Code for working with the [COCO dataset](https://cocodataset.org).
 * `download.py` - Download Open Images examples and build a YOLOv5 dataset, including images, labels and a YAML file.
 * `convert.py` - Main conversion script. Uses RKNN Toolkit to handle model conversion.
+* `evaluate.py` - Run a repeatable YOLOv5 evaluation, wrapping `yolov5/val.py` and exporting metrics and plots.
 * `onnx_executor.py` - Classes that implement inference using [ONNX Runtime](https://github.com/microsoft/onnxruntime).
 * `rknn_executor.py` - Classes that implement inference on Rockchip devices using RKNN Toolkit.
-* `yolov5.py` - Wrapper script for performing inference. Relies on `ONNXExecutor` or `RKNNExecutor` to do the actual work.
+* `yolov5.py` - Wrapper script for performing inference using ONNX or RKNN.
 
 Note: These scripts are based on the [yolov5](https://github.com/airockchip/rknn_model_zoo/tree/main/examples/yolov5) example from Rockchip's [RKNN Model Zoo](https://github.com/airockchip/rknn_model_zoo).
 
@@ -332,8 +333,6 @@ datasets/apples-oranges
     ├── test
     ├── train
     └── validation
-
-7 directories
 ```
 
 This looks just like the `firearms` dataset we were using as a reference, and also includes an `annotations` directory. This contains a copy of the Open Images metadata CSV files used to build the dataset:
@@ -511,7 +510,7 @@ python -m yolo_rknn.evaluate \
   --export-dir reports/evaluation/apples-oranges
 ```
 
-This writes evaluation artifacts to `reports/evaluation`.
+This writes evaluation artifacts to the directory given by `--export-dir` (here, `reports/evaluation/apples-oranges`). If omitted, it defaults to `reports/evaluation`.
 
 ### Training Time
 
@@ -612,7 +611,7 @@ find apples-oranges-calib -type f -exec echo "./{}" \; > apples-oranges-calib.tx
 
 We should also check the output using `head apples-oranges-calib.txt`:
 
-```bash
+```
 ./apples-oranges-calib/69974d01b659acfe.jpg
 ./apples-oranges-calib/326cd1e8ed154d23.jpg
 ./apples-oranges-calib/6a7745c9f562a645.jpg
@@ -677,10 +676,10 @@ You are also welcome to raise GitHub issues against this repo, however please no
 
 ## License
 
-This repo contains code derived from multiple projects, each released under a different license:
+This code is derived from multiple projects, each released under a different license:
 
-* [yolov5](https://github.com/ultralytics/yolov5) - AGPL-3.0 License
 * [OIDv6_ToolKit](https://github.com/Bukkster/OIDv6_ToolKit) - GPL-3.0 License
 * [RKNN Toolkit2](https://github.com/rockchip-linux/rknn-toolkit2) - BSD 3-Clause "New" or "Revised" License
+* [yolov5](https://github.com/ultralytics/yolov5) - AGPL-3.0 License
 
-It is your responsibility to adhere to the relevant license if adapting this code for use in your own projects.
+It is your responsibility to adhere to the relevant license if using this code in your own projects.
