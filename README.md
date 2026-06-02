@@ -28,7 +28,6 @@ For a short introduction to object detection, transfer learning, quantization, a
   * [Directory Structure](#directory-structure)
   * [YAML File](#yaml-file)
   * [Apples and Oranges](#apples-and-oranges)
-  * [Converting Annotations](#converting-annotations)
 * [Ultralytics YOLOv5](#ultralytics-yolov5)
   * [Requirements](#requirements)
   * [COCO128](#coco128)
@@ -115,6 +114,7 @@ The [yolo_rknn](python/yolo_rknn) module provides the following Python scripts:
 
 * `annotations.py` - Convert annotations from OID format to YOLO format.
 * `coco_utils.py` - Code for working with the [COCO dataset](https://cocodataset.org).
+* `download.py` - Download Open Images examples and build a YOLOv5 dataset, including images, labels and a YAML file.
 * `convert.py` - Main conversion script. Uses RKNN Toolkit to handle model conversion.
 * `onnx_executor.py` - Classes that implement inference for arbitrary devices, as supported by [ONNX Runtime](https://github.com/microsoft/onnxruntime).
 * `rknn_executor.py` - Classes that implement inference on Rockchip devices. Uses RKNN Toolkit to perform inference.
@@ -276,149 +276,65 @@ Note: Due to the layout of this repo, the main `path:` is relative to the `yolov
 
 ### Apples and Oranges
 
-Let's build our own dataset. Begin by downloading the images and annotations for an "Apples and Oranges" dataset, using `OIDv6_ToolKit`:
+Let's build our own dataset. The `yolo_rknn.download` script handles everything in a single step: it downloads the required Open Images metadata, fetches the images for the classes you choose, converts the bounding box annotations to YOLO format, and writes a dataset YAML file.
 
 ```bash
-python OIDv6_ToolKit/main.py downloader \
+python -m yolo_rknn.download apples-oranges \
   --classes Apple Orange \
-  --type_csv all
+  --splits all
 ```
 
-This will prompt you to download various missing files:
+The first positional argument is the dataset name (`apples-oranges`). The `--classes` option lists the Open Images class names to include, in YOLO class ID order — so `Apple` becomes class `0` and `Orange` becomes class `1`. The `--splits all` option downloads the `train`, `validation` and `test` splits; by default only `train` is downloaded.
+
+The first time you run this, the script needs to download several Open Images metadata files:
 
 * `class-descriptions-boxable.csv`
 * `train-annotations-bbox.csv`
 * `validation-annotations-bbox.csv`
 * `test-annotations-bbox.csv`
 
-Alternatively, the prompt can be suppressed by adding the `-y` option, ensuring that all files are downloaded automatically:
+You'll be prompted before these are downloaded. To download them automatically without prompting, add the `--yes` option:
 
 ```bash
-python OIDv6_ToolKit/main.py downloader -y \
+python -m yolo_rknn.download apples-oranges --yes \
   --classes Apple Orange \
-  --type_csv all
+  --splits all
 ```
 
-The download may take a while, due to the number of images. The images will be downloaded to a directory called `OID`. We can inspect the structure of that directory using `tree -d OID`:
+The download may take a while, due to the number of images. Images are fetched concurrently — you can tune the number of parallel downloads with `--workers` (default 20), and cap the number of images per split with `--limit`.
+
+When the run finishes, a short summary is printed:
 
 ```
-.
-├── Dataset
+Downloaded images: 2437
+Skipped existing images: 0
+Failed downloads: 0
+Labels written: 2437
+Dataset YAML: datasets/apples-oranges.yaml
+```
+
+If any image downloads fail, the affected labels are removed and the failures are recorded in `datasets/apples-oranges/download-errors.csv`. To re-run the download over an existing dataset directory, pass `--overwrite` to replace it.
+
+The final dataset is placed in `datasets/apples-oranges`, with a corresponding YAML file `datasets/apples-oranges.yaml` that follows the same YAML file format described above.
+
+We can inspect the final directory layout using `tree -d datasets/apples-oranges`:
+
+```
+datasets/apples-oranges
+├── annotations
+├── images
 │   ├── test
-│   │   ├── Apple
-│   │   │   └── Label
-│   │   └── Orange
-│   │       └── Label
 │   ├── train
-│   │   ├── Apple
-│   │   │   └── Label
-│   │   └── Orange
-│   │       └── Label
 │   └── validation
-│       ├── Apple
-│       │   └── Label
-│       └── Orange
-│           └── Label
-└── csv_folder
+└── labels
+    ├── test
+    ├── train
+    └── validation
 
-8 directories
+7 directories
 ```
 
-This isn't quite what we need for YOLO, so let's proceed to converting annotations and preparing the dataset.
-
-### Converting Annotations
-
-The OID dataset includes four CSV files, containing metadata that we need for training:
-
-* The `class-descriptions-boxable.csv` file is used when converting data into YOLO format. It provides a mapping between class label IDs and their human-readable names.
-* The other three files (`train-annotations-bbox.csv`, `test-annotations-bbox.csv` and `validation-annotations-bbox.csv`) contain bounding box annotations for the images in each subset.
-
-Our goal is to convert the annotations to YOLO format. We can use the `annotations` script (adapted from `OIDv6_ToolKit`) to handle this:
-
-```bash
-python -m yolo_rknn.annotations Apple Orange
-```
-
-This will create a new annotation file alongside each of the original JPEG files, showing progress meters:
-
-```
-Currently in subdirectory: test
-Converting annotations for class:  Apple
-100%|█████████████████████████████████████████████████████| 144/144 [00:01<00:00, 109.78it/s]
-Converting annotations for class:  Orange
-100%|█████████████████████████████████████████████████████| 208/208 [00:03<00:00, 62.80it/s]
-Currently in subdirectory: train
-Converting annotations for class:  Apple
-100%|█████████████████████████████████████████████████████| 1078/1078 [00:14<00:00, 76.54it/s]
-Converting annotations for class:  Orange
-100%|█████████████████████████████████████████████████████| 900/900 [00:20<00:00, 43.77it/s]
-Currently in subdirectory: validation
-Converting annotations for class:  Apple
-100%|█████████████████████████████████████████████████████| 46/46 [00:00<00:00, 105.55it/s]
-Converting annotations for class:  Orange
-100%|█████████████████████████████████████████████████████| 61/61 [00:00<00:00, 108.31it/s]
-```
-
-Now we can move these into the datasets directory using the `prepare-dataset.sh` script:
-
-```bash
-./scripts/prepare-dataset.sh apples-oranges Apple Orange
-```
-
-The arguments are simply a dataset name (`apples-oranges`), then a list of the classes to be included (`Apple`, `Orange`).
-
-This script will show progress while restructuring the data:
-
-```
-Preparing dataset directory: datasets/apples-oranges
-Moving annotations...
-Moving images and labels...
-- subset train
-  - class Apple
-    - copying images
-    - copying labels
-  - class Orange
-    - copying images
-    - copying labels
-- subset test
-  - class Apple
-    - copying images
-    - copying labels
-  - class Orange
-    - copying images
-    - copying labels
-- subset validation
-  - class Apple
-    - copying images
-    - copying labels
-  - class Orange
-    - copying images
-    - copying labels
-Writing yaml file...
-Done!
-```
-
-The final dataset will be placed in `datasets/apples-oranges`. The dataset has a corresponding YAML file `datasets/apples-oranges.yaml` that follows the same YAML file format described above.
-
-We can inspect the final directory layout using `tree -d datasets`:
-
-```
-datasets
-└── apples-oranges
-    ├── annotations
-    ├── images
-    │   ├── test
-    │   ├── train
-    │   └── validation
-    └── labels
-        ├── test
-        ├── train
-        └── validation
-
-11 directories
-```
-
-This looks just like the `firearms` dataset we were using as a reference, and also includes an `annotations` directory. This contains the annotation CSV files we downloaded earlier:
+This looks just like the `firearms` dataset we were using as a reference, and also includes an `annotations` directory. This contains a copy of the Open Images metadata CSV files used to build the dataset:
 
 * `class-descriptions-boxable.csv`
 * `train-annotations-bbox.csv`
