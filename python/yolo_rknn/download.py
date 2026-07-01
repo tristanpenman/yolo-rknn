@@ -181,13 +181,12 @@ def download_file(
             disable=not show_progress,
             leave=False,
         )
-        temp_file_cm = NamedTemporaryFile(
+        with progress, NamedTemporaryFile(
             "wb",
             delete=False,
             dir=destination.parent,
             prefix=f".{destination.name}.",
-        )
-        with temp_file_cm as (temp_file, progress):
+        ) as temp_file:
             temp_path = Path(temp_file.name)
             for chunk in response.iter_content(chunk_size=1024 * 1024):
                 if chunk:
